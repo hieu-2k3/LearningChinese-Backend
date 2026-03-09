@@ -52,6 +52,32 @@ router.post('/lessons/:id/vocabulary/delete/:wordId', async (req, res) => {
     res.redirect(`/admin/lessons/${req.params.id}/vocabulary`);
 });
 
+// Manage Lesson Exercises (Manual Practice)
+router.get('/lessons/:id/exercises', async (req, res) => {
+    const lesson = await Lesson.findById(req.params.id);
+    res.render('lesson_exercises', { lesson });
+});
+
+router.post('/lessons/:id/exercises/add', async (req, res) => {
+    const { type, question, options, correctAnswer, explanation } = req.body;
+    let exerciseData = { type, question, explanation };
+
+    if (type === 'choice' || type === 'listening') {
+        exerciseData.options = options.split(',').map(o => o.trim());
+        exerciseData.correctAnswer = correctAnswer;
+    }
+
+    await Lesson.findByIdAndUpdate(req.params.id, { $push: { exercises: exerciseData } });
+    res.redirect(`/admin/lessons/${req.params.id}/exercises`);
+});
+
+router.post('/lessons/:id/exercises/delete/:exIndex', async (req, res) => {
+    const lesson = await Lesson.findById(req.params.id);
+    lesson.exercises.splice(req.params.exIndex, 1);
+    await lesson.save();
+    res.redirect(`/admin/lessons/${req.params.id}/exercises`);
+});
+
 // Manage Users
 router.get('/users', async (req, res) => {
     const users = await User.find();

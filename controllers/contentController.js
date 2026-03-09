@@ -116,3 +116,66 @@ exports.getLessonById = async (req, res) => {
         res.status(400).json({ status: 'fail', message: err.message });
     }
 };
+
+exports.getLessonPractice = async (req, res) => {
+    try {
+        const lesson = await Lesson.findById(req.params.id).populate('vocabulary');
+        if (!lesson) {
+            return res.status(404).json({ status: 'fail', message: 'Bài học không tồn tại.' });
+        }
+
+        let practiceSession = [];
+
+        // 1. Add hand-crafted exercises from CMS
+        if (lesson.exercises && lesson.exercises.length > 0) {
+            practiceSession = [...lesson.exercises];
+        }
+
+        // 2. Auto-generate exercises from Vocabulary (Smart Idea 2)
+        if (lesson.vocabulary && lesson.vocabulary.length > 1) {
+            // Generate Matching exercise from Vocabulary
+            const vocabPairs = lesson.vocabulary.slice(0, 5).map(v => ({
+                chinese: v.hanzi,
+                pinyin: v.pinyin,
+                meaning: v.meaning
+            }));
+
+            practiceSession.push({
+                type: 'matching',
+                question: 'Nối từ chữ Hán với phiên âm và nghĩa đúng',
+                pairs: vocabPairs
+            });
+
+            // Generate Choice exercises for each word
+            lesson.vocabulary.forEach(v => {
+                const distractions = lesson.vocabulary
+                    .filter(item => item._id !== v._id)
+                    .map(item => item.meaning)
+                    .sort(() => 0.5 - Math.random())
+                    .slice(0, 3);
+
+                practiceSession.push({
+                    type: 'choice',
+                    question: `Từ "${v.hanzi}" (${v.pinyin}) có nghĩa là gì?`,
+                    options: [...distractions, v.meaning].sort(() => 0.5 - Math.random()),
+                    correctAnswer: v.meaning,
+                    explanation: `"${v.hanzi}" có nghĩa là "${v.meaning}"`
+                });
+            });
+        }
+
+        // 3. Shuffle the session
+        practiceSession = practiceSession.sort(() => 0.5 - Math.random());
+
+        res.status(200).json({
+            status: 'success',
+            results: practiceSession.length,
+            data: {
+                lessonTitle: lesson.title,
+                exercises: practiceSession
+            }
+        });
+    } catch (err) {
+        res.status(400).json({ status: 'fail', message: err.message });
+    }
+};

@@ -1,0 +1,69 @@
+<div class="header">
+    <a href="/admin/lessons?hsk=<%= lesson.hskLevel %>"
+        style="text-decoration: none; color: var(--primary); font-weight: 600;">← Back to HSK <%= lesson.hskLevel %></a>
+    <h1>Manage Practice: <%= lesson.title %>
+    </h1>
+</div>
+
+<p style="color: #666; margin-bottom: 1rem;">Note: Backend also auto-generates matching and word-choice tasks from
+    vocabulary.</p>
+
+<div class="card" style="margin-bottom: 2rem;">
+    <h3>Add Manual Exercise</h3>
+    <form action="/admin/lessons/<%= lesson._id %>/exercises/add" method="POST"
+        style="margin-top: 1rem; display: grid; gap: 1rem;">
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1rem;">
+            <select name="type" required style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+                <option value="choice">Multiple Choice (Text)</option>
+                <option value="listening">Listening Quiz</option>
+                <option value="translate">Translation Task</option>
+            </select>
+            <input type="text" name="question" placeholder="Question or Instruction (e.g. Which one means 'Dog'?)"
+                required style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 3fr 1fr; gap: 1rem;">
+            <input type="text" name="options" placeholder="Options (comma separated, e.g. Dog, Cat, Bird)"
+                style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+            <input type="text" name="correctAnswer" placeholder="Correct Value"
+                style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        </div>
+
+        <input type="text" name="explanation" placeholder="Short explanation (optional)"
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+
+        <button type="submit" class="btn">Add Manual Exercise</button>
+    </form>
+</div>
+
+<h2>Current Exercises (<%= lesson.exercises.length %>)</h2>
+<div style="display: grid; gap: 1rem;">
+    <% lesson.exercises.forEach((ex, index)=> { %>
+        <div class="card" style="border-left: 4px solid var(--primary);">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div>
+                    <span
+                        style="background: #EEE; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; text-transform: uppercase;">
+                        <%= ex.type %>
+                    </span>
+                    <p style="margin-top: 0.5rem; font-weight: 600;">
+                        <%= ex.question %>
+                    </p>
+                    <% if(ex.options && ex.options.length> 0) { %>
+                        <ul style="font-size: 0.875rem; color: #555; margin-top: 0.5rem;">
+                            <% ex.options.forEach(opt=> { %>
+                                <li style="<%= opt === ex.correctAnswer ? 'color: green; font-weight: bold;' : '' %>">
+                                    <%= opt %>
+                                </li>
+                                <% }) %>
+                        </ul>
+                        <% } %>
+                </div>
+                <form action="/admin/lessons/<%= lesson._id %>/exercises/delete/<%= index %>" method="POST">
+                    <button type="submit"
+                        style="color: #EF4444; background: none; border: none; cursor: pointer;">Delete</button>
+                </form>
+            </div>
+        </div>
+        <% }) %>
+</div>

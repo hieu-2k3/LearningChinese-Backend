@@ -28,6 +28,23 @@ const lessonSchema = new mongoose.Schema({
         description: String,
         videoUrl: String // Stroke order video or GIF
     },
+    exercises: [{
+        type: {
+            type: String,
+            enum: ['choice', 'matching', 'translate', 'listening', 'fill_blank'],
+            default: 'choice'
+        },
+        question: String,
+        audioUrl: String, // For listening type
+        options: [String], // For multiple choice
+        correctAnswer: mongoose.Schema.Types.Mixed, // Can be index (Number) or string
+        pairs: [{ // For matching type
+            chinese: String,
+            pinyin: String,
+            meaning: String
+        }],
+        explanation: String
+    }],
     quizzes: [{
         question: String,
         options: [String],
