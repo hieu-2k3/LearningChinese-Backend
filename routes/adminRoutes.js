@@ -24,14 +24,32 @@ router.get('/', async (req, res) => {
 
 // Manage Lessons: filter by HSK
 router.get('/lessons', async (req, res) => {
-    const hsk = req.query.hsk || 1; // Default to HSK 1
+    const hsk = req.query.hsk || 1;
     const lessons = await Lesson.find({ hskLevel: hsk }).sort('order');
     res.render('lessons', { lessons, currentHsk: hsk });
 });
 
 router.post('/lessons/add', async (req, res) => {
     await Lesson.create(req.body);
-    res.redirect('/admin/lessons');
+    res.redirect(`/admin/lessons?hsk=${req.body.hskLevel}`);
+});
+
+// Manage Lesson Details (Vocabulary)
+router.get('/lessons/:id/vocabulary', async (req, res) => {
+    const lesson = await Lesson.findById(req.params.id).populate('vocabulary');
+    res.render('lesson_vocabulary', { lesson });
+});
+
+router.post('/lessons/:id/vocabulary/add', async (req, res) => {
+    const word = await Word.create({ ...req.body, lessonId: req.params.id });
+    await Lesson.findByIdAndUpdate(req.params.id, { $push: { vocabulary: word._id } });
+    res.redirect(`/admin/lessons/${req.params.id}/vocabulary`);
+});
+
+router.post('/lessons/:id/vocabulary/delete/:wordId', async (req, res) => {
+    await Word.findByIdAndDelete(req.params.wordId);
+    await Lesson.findByIdAndUpdate(req.params.id, { $pull: { vocabulary: req.params.wordId } });
+    res.redirect(`/admin/lessons/${req.params.id}/vocabulary`);
 });
 
 // Manage Users

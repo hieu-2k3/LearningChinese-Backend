@@ -33,7 +33,8 @@
                     <%= lesson.description ? lesson.description.substring(0, 30) + '...' : 'No description' %>
                 </td>
                 <td>
-                    <a href="#" style="color: var(--primary)">Edit Parts</a> |
+                    <a href="/admin/lessons/<%= lesson._id %>/vocabulary"
+                        style="color: var(--primary); font-weight: 600;">Edit Vocabulary</a> |
                     <a href="#" style="color: #EF4444">Delete</a>
                 </td>
             </tr>

@@ -1,0 +1,68 @@
+<div class="header">
+    <a href="/admin/lessons?hsk=<%= lesson.hskLevel %>"
+        style="text-decoration: none; color: var(--primary); font-weight: 600;">← Back to HSK <%= lesson.hskLevel %></a>
+    <h1>Manage Vocabulary: <%= lesson.title %>
+    </h1>
+</div>
+
+<div class="card" style="margin-bottom: 2rem;">
+    <h3>Add New Word</h3>
+    <form action="/admin/lessons/<%= lesson._id %>/vocabulary/add" method="POST"
+        style="margin-top: 1rem; display: grid; gap: 1rem; grid-template-columns: repeat(3, 1fr);">
+        <input type="text" name="hanzi" placeholder="Hanzi (eg. 你好)" required
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        <input type="text" name="pinyin" placeholder="Pinyin (eg. nǐ hǎo)" required
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        <input type="text" name="meaning" placeholder="Meaning (eg. Hello)" required
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        <input type="text" name="example" placeholder="Example sentence"
+            style="grid-column: span 2; padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        <input type="text" name="audioUrl" placeholder="Audio URL (Cloudinary link)"
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        <button type="submit" class="btn" style="grid-column: span 3;">Add Word to Lesson</button>
+    </form>
+</div>
+
+<h2>Current Words (<%= lesson.vocabulary.length %>)</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Hanzi</th>
+            <th>Pinyin</th>
+            <th>Meaning</th>
+            <th>Audio</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% lesson.vocabulary.forEach(word=> { %>
+            <tr>
+                <td style="font-size: 1.5rem;">
+                    <%= word.hanzi %>
+                </td>
+                <td>
+                    <%= word.pinyin %>
+                </td>
+                <td>
+                    <%= word.meaning %>
+                </td>
+                <td>
+                    <% if(word.audioUrl) { %>
+                        <audio controls style="height: 30px;">
+                            <source src="<%= word.audioUrl %>" type="audio/mpeg">
+                        </audio>
+                        <% } else { %>
+                            <span style="color: #999;">No Audio</span>
+                            <% } %>
+                </td>
+                <td>
+                    <form action="/admin/lessons/<%= lesson._id %>/vocabulary/delete/<%= word._id %>" method="POST"
+                        style="display:inline;">
+                        <button type="submit"
+                            style="color: #EF4444; background: none; border: none; cursor: pointer; font-size: 0.875rem;">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            <% }) %>
+    </tbody>
+</table>
