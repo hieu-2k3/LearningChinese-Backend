@@ -15,6 +15,7 @@ router.use(protect);
 
 router.get('/user/profile', authController.getProfile);
 router.get('/lessons', contentController.getAllLessons);
+router.get('/lessons/:id', contentController.getLessonById);
 router.post('/progress/update', contentController.updateProgress);
 router.get('/leaderboard', contentController.getLeaderboard);
 

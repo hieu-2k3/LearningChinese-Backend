@@ -97,3 +97,22 @@ exports.getLeaderboard = async (req, res) => {
         res.status(400).json({ status: 'fail', message: err.message });
     }
 };
+
+exports.getLessonById = async (req, res) => {
+    try {
+        const lesson = await Lesson.findById(req.params.id).populate('vocabulary');
+        if (!lesson) {
+            return res.status(404).json({
+                status: 'fail',
+                message: 'Không tìm thấy bài học này.'
+            });
+        }
+
+        res.status(200).json({
+            status: 'success',
+            data: { lesson }
+        });
+    } catch (err) {
+        res.status(400).json({ status: 'fail', message: err.message });
+    }
+};
