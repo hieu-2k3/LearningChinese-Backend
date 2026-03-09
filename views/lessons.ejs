@@ -3,32 +3,37 @@
     <a href="#" class="btn">+ New Lesson</a>
 </div>
 
+<div class="hsk-tabs" style="margin-bottom: 2rem; display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 10px;">
+    <% for(let i=1; i<=9; i++) { %>
+        <a href="/admin/lessons?hsk=<%= i %>" class="btn <%= currentHsk == i ? '' : 'btn-outline' %>"
+            style="<%= currentHsk == i ? '' : 'background: white; color: var(--primary); border: 1px solid var(--primary);' %>">
+            HSK <%= i %>
+        </a>
+        <% } %>
+</div>
+
 <table>
     <thead>
         <tr>
-            <th>Title</th>
-            <th>Level</th>
-            <th>Type</th>
             <th>Order</th>
+            <th>Title</th>
+            <th>Summary</th>
             <th>Actions</th>
         </tr>
     </thead>
     <tbody>
-        <% lessons.forEach(lesson=> { %>
+        <% lessons.sort((a,b)=> a.order - b.order).forEach(lesson => { %>
             <tr>
+                <td>#<%= lesson.order %>
+                </td>
                 <td><strong>
                         <%= lesson.title %>
                     </strong></td>
-                <td>HSK <%= lesson.level %>
+                <td>
+                    <%= lesson.description ? lesson.description.substring(0, 30) + '...' : 'No description' %>
                 </td>
                 <td>
-                    <%= lesson.type %>
-                </td>
-                <td>
-                    <%= lesson.order %>
-                </td>
-                <td>
-                    <a href="#" style="color: var(--primary)">Edit</a> |
+                    <a href="#" style="color: var(--primary)">Edit Parts</a> |
                     <a href="#" style="color: #EF4444">Delete</a>
                 </td>
             </tr>
@@ -37,20 +42,17 @@
 </table>
 
 <div class="card" style="margin-top: 3rem;">
-    <h3>Add Quick Lesson</h3>
+    <h3>Add New Lesson to HSK <%= currentHsk %>
+    </h3>
     <form action="/admin/lessons/add" method="POST"
         style="margin-top: 1rem; display: grid; gap: 1rem; grid-template-columns: 1fr 1fr;">
-        <input type="text" name="title" placeholder="Lesson Title" required
+        <input type="hidden" name="hskLevel" value="<%= currentHsk %>">
+        <input type="text" name="title" placeholder="Lesson Title (e.g. Greetings 1)" required
             style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
-        <input type="number" name="level" placeholder="HSK Level (1-6)" required
+        <input type="number" name="order" placeholder="Order in Roadmap (e.g. 1)" required
             style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
-        <select name="type" style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
-            <option value="vocabulary">Vocabulary</option>
-            <option value="grammar">Grammar</option>
-            <option value="listening">Listening</option>
-        </select>
-        <input type="number" name="order" placeholder="Display Order"
-            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
-        <button type="submit" class="btn" style="grid-column: span 2;">Create Lesson</button>
+        <textarea name="description" placeholder="Short description of the lesson"
+            style="grid-column: span 2; padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;"></textarea>
+        <button type="submit" class="btn" style="grid-column: span 2;">Create Standard Lesson</button>
     </form>
 </div>

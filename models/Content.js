@@ -6,18 +6,36 @@ const wordSchema = new mongoose.Schema({
     meaning: { type: String, required: true },
     example: { type: String },
     audioUrl: { type: String },
+    strokeOrderUrl: { type: String }, // For writing part
     lessonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Lesson' }
 });
 
 const lessonSchema = new mongoose.Schema({
     title: { type: String, required: true },
     description: { type: String },
-    level: { type: Number, required: true }, // HSK Level
-    type: { type: String, enum: ['vocabulary', 'grammar', 'listening'], default: 'vocabulary' },
+    hskLevel: { type: Number, required: true, min: 1, max: 9 }, // HSK 1-9
     thumbnail: { type: String },
-    words: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Word' }],
-    content: { type: String }, // For articles or long content
-    order: { type: Number, default: 0 }
+    order: { type: Number, default: 0 },
+
+    // Detailed Parts
+    vocabulary: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Word' }],
+    pronunciation: {
+        text: String,
+        audioUrl: String,
+        description: String
+    },
+    writing: {
+        description: String,
+        videoUrl: String // Stroke order video or GIF
+    },
+    quizzes: [{
+        question: String,
+        options: [String],
+        correctAnswer: Number, // Index of correct option
+        explanation: String
+    }],
+
+    type: { type: String, enum: ['standard', 'special'], default: 'standard' }
 }, { timestamps: true });
 
 const listeningSchema = new mongoose.Schema({

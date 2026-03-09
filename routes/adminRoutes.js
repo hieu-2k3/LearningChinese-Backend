@@ -22,10 +22,11 @@ router.get('/', async (req, res) => {
     res.render('dashboard', { userCount, lessonCount, users });
 });
 
-// Manage Lessons
+// Manage Lessons: filter by HSK
 router.get('/lessons', async (req, res) => {
-    const lessons = await Lesson.find();
-    res.render('lessons', { lessons });
+    const hsk = req.query.hsk || 1; // Default to HSK 1
+    const lessons = await Lesson.find({ hskLevel: hsk }).sort('order');
+    res.render('lessons', { lessons, currentHsk: hsk });
 });
 
 router.post('/lessons/add', async (req, res) => {
