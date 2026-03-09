@@ -161,6 +161,24 @@ exports.getLessonPractice = async (req, res) => {
                     correctAnswer: v.meaning,
                     explanation: `"${v.hanzi}" có nghĩa là "${v.meaning}"`
                 });
+
+                // SMART IDEA: Auto-generate Fill in the Blank from example sentence
+                if (v.example && v.example.includes(v.hanzi)) {
+                    const blankSentence = v.example.replace(v.hanzi, ' ___ ');
+                    const wordDistractions = lesson.vocabulary
+                        .filter(item => item._id !== v._id)
+                        .map(item => item.hanzi)
+                        .sort(() => 0.5 - Math.random())
+                        .slice(0, 3);
+
+                    practiceSession.push({
+                        type: 'fill_blank',
+                        question: `Điền từ còn thiếu vào câu sau: "${blankSentence}"`,
+                        options: [...wordDistractions, v.hanzi].sort(() => 0.5 - Math.random()),
+                        correctAnswer: v.hanzi,
+                        explanation: `Câu hoàn chỉnh: "${v.example}"`
+                    });
+                }
             });
         }
 

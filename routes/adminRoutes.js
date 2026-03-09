@@ -62,7 +62,7 @@ router.post('/lessons/:id/exercises/add', async (req, res) => {
     const { type, question, options, correctAnswer, explanation } = req.body;
     let exerciseData = { type, question, explanation };
 
-    if (type === 'choice' || type === 'listening') {
+    if (type === 'choice' || type === 'listening' || type === 'fill_blank') {
         exerciseData.options = options.split(',').map(o => o.trim());
         exerciseData.correctAnswer = correctAnswer;
     }
