@@ -1,0 +1,47 @@
+<div
+    style="max-width: 400px; margin: 100px auto; padding: 2rem; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-family: sans-serif;">
+    <h2 style="text-align: center; color: #4F46E5;">Admin Login</h2>
+    <p style="text-align: center; color: #6B7280; font-size: 0.875rem;">Chinese Learning App CMS</p>
+
+    <form id="loginForm" style="margin-top: 2rem;">
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Email</label>
+            <input type="email" id="email" required
+                style="width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Password</label>
+            <input type="password" id="password" required
+                style="width: 100%; padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <button type="submit"
+            style="width: 100%; background: #4F46E5; color: white; padding: 0.75rem; border: none; border-radius: 4px; font-weight: 600; cursor: pointer;">Login</button>
+    </form>
+</div>
+
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        try {
+            const response = await fetch('/api/v1/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                // Store token in cookie for Admin routes
+                document.cookie = `jwt=${data.token}; path=/; max-age=86400`;
+                window.location.href = '/admin';
+            } else {
+                alert('Login failed: ' + data.message);
+            }
+        } catch (err) {
+            alert('Something went wrong. Please try again.');
+        }
+    });
+</script>

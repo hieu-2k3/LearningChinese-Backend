@@ -5,7 +5,12 @@ const { protect, restrictTo } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Only Admins allowed
+// Admin Login Page
+router.get('/login', (req, res) => {
+    res.render('login', { layout: false });
+});
+
+// All routes after this require login
 router.use(protect);
 router.use(restrictTo('admin'));
 
