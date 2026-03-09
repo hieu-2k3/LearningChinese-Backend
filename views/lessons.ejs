@@ -1,0 +1,56 @@
+<div class="header">
+    <h2>Lessons Management</h2>
+    <a href="#" class="btn">+ New Lesson</a>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Level</th>
+            <th>Type</th>
+            <th>Order</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% lessons.forEach(lesson=> { %>
+            <tr>
+                <td><strong>
+                        <%= lesson.title %>
+                    </strong></td>
+                <td>HSK <%= lesson.level %>
+                </td>
+                <td>
+                    <%= lesson.type %>
+                </td>
+                <td>
+                    <%= lesson.order %>
+                </td>
+                <td>
+                    <a href="#" style="color: var(--primary)">Edit</a> |
+                    <a href="#" style="color: #EF4444">Delete</a>
+                </td>
+            </tr>
+            <% }) %>
+    </tbody>
+</table>
+
+<div class="card" style="margin-top: 3rem;">
+    <h3>Add Quick Lesson</h3>
+    <form action="/admin/lessons/add" method="POST"
+        style="margin-top: 1rem; display: grid; gap: 1rem; grid-template-columns: 1fr 1fr;">
+        <input type="text" name="title" placeholder="Lesson Title" required
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        <input type="number" name="level" placeholder="HSK Level (1-6)" required
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        <select name="type" style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+            <option value="vocabulary">Vocabulary</option>
+            <option value="grammar">Grammar</option>
+            <option value="listening">Listening</option>
+        </select>
+        <input type="number" name="order" placeholder="Display Order"
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        <button type="submit" class="btn" style="grid-column: span 2;">Create Lesson</button>
+    </form>
+</div>

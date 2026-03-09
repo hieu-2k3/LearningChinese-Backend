@@ -1,0 +1,22 @@
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const multer = require('multer');
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'chinese_learning_audio',
+        resource_type: 'auto', // Important for audio files
+        allowed_formats: ['jpg', 'png', 'mp3', 'wav']
+    }
+});
+
+const upload = multer({ storage: storage });
+
+module.exports = { cloudinary, upload };

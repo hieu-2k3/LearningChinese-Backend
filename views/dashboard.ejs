@@ -1,0 +1,51 @@
+<div class="card-grid">
+    <div class="card">
+        <h3>Total Users</h3>
+        <p>
+            <%= userCount %>
+        </p>
+    </div>
+    <div class="card">
+        <h3>Active Lessons</h3>
+        <p>
+            <%= lessonCount %>
+        </p>
+    </div>
+    <div class="card">
+        <h3>Avg. Progress</h3>
+        <p>78%</p>
+    </div>
+</div>
+
+<h2>Recent Users</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Username</th>
+            <th>Email</th>
+            <th>XP</th>
+            <th>Streak</th>
+            <th>Joined</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% users.forEach(user=> { %>
+            <tr>
+                <td>
+                    <%= user.username %>
+                </td>
+                <td>
+                    <%= user.email %>
+                </td>
+                <td><span class="badge badge-xp">
+                        <%= user.xp %> XP
+                    </span></td>
+                <td>🔥 <%= user.streak %>
+                </td>
+                <td>
+                    <%= user.createdAt.toDateString() %>
+                </td>
+            </tr>
+            <% }) %>
+    </tbody>
+</table>
