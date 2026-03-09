@@ -3,8 +3,25 @@ const User = require('../models/User');
 
 exports.getAllLessons = async (req, res) => {
     try {
-        const lessons = await Lesson.find().sort('order');
-        // Personalize: mark completed status
+        const hsk = parseInt(req.query.hsk) || 1;
+
+        // 1. Check if HSK level is unlocked
+        if (hsk > 1) {
+            const previousLevelLessons = await Lesson.find({ hskLevel: hsk - 1 });
+            const previousLevelIds = previousLevelLessons.map(l => l._id.toString());
+            const userCompletedIds = req.user.completedLessons.map(id => id.toString());
+
+            const isPreviousLevelComplete = previousLevelIds.every(id => userCompletedIds.includes(id));
+
+            if (!isPreviousLevelComplete && previousLevelIds.length > 0) {
+                return res.status(403).json({
+                    status: 'fail',
+                    message: `Bạn cần hoàn thành tất cả bài học ở HSK ${hsk - 1} để mở khóa HSK ${hsk}.`
+                });
+            }
+        }
+
+        const lessons = await Lesson.find({ hskLevel: hsk }).sort('order');
         const completedIds = req.user.completedLessons.map(id => id.toString());
 
         const personalizedLessons = lessons.map(lesson => ({
@@ -14,6 +31,7 @@ exports.getAllLessons = async (req, res) => {
 
         res.status(200).json({
             status: 'success',
+            hskLevel: hsk,
             results: personalizedLessons.length,
             data: { lessons: personalizedLessons }
         });
