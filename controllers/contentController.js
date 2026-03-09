@@ -26,6 +26,7 @@ exports.getAllLessons = async (req, res) => {
 
         const personalizedLessons = lessons.map(lesson => ({
             ...lesson._doc,
+            level: lesson.hskLevel, // Map hskLevel to level for Swift App
             isCompleted: completedIds.includes(lesson._id.toString())
         }));
 
