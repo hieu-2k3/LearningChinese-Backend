@@ -24,8 +24,9 @@ router.use(restrictTo('admin'));
 router.get('/', async (req, res) => {
     const userCount = await User.countDocuments();
     const lessonCount = await Lesson.countDocuments();
+    const listeningCount = await Listening.countDocuments();
     const users = await User.find().limit(5).sort('-createdAt');
-    res.render('dashboard', { userCount, lessonCount, users });
+    res.render('dashboard', { userCount, lessonCount, listeningCount, users });
 });
 
 // Manage Lessons: filter by HSK
