@@ -10,7 +10,10 @@ const protect = async (req, res, next) => {
     }
 
     if (!token) {
-        return res.status(401).json({ status: 'fail', message: 'You are not logged in!' });
+        if (req.originalUrl.startsWith('/api/v1')) {
+            return res.status(401).json({ status: 'fail', message: 'You are not logged in!' });
+        }
+        return res.redirect('/admin/login');
     }
 
     try {
@@ -22,7 +25,10 @@ const protect = async (req, res, next) => {
         req.user = currentUser;
         next();
     } catch (err) {
-        return res.status(401).json({ status: 'fail', message: 'Invalid token.' });
+        if (req.originalUrl.startsWith('/api/v1')) {
+            return res.status(401).json({ status: 'fail', message: 'Invalid token.' });
+        }
+        return res.redirect('/admin/login');
     }
 };
 
