@@ -1,0 +1,89 @@
+<div class="header">
+    <a href="/admin/lessons?hsk=<%= lesson.hskLevel %>"
+        style="text-decoration: none; color: var(--primary); font-weight: 600;">← Back to HSK <%= lesson.hskLevel %></a>
+    <h1>Manage Grammar: <%= lesson.title %>
+    </h1>
+</div>
+
+<div class="card" style="margin-bottom: 2rem;">
+    <h3>Add Grammar Point</h3>
+    <form action="/admin/lessons/<%= lesson._id %>/grammar/add" method="POST"
+        style="margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem;">
+        <input type="text" name="title" placeholder="Title (e.g. Cấu trúc câu chữ 是)" required
+            style="padding: 0.75rem; border: 1px solid #DDD; border-radius: 8px;">
+        <input type="text" name="formula" placeholder="Formula (e.g. A + 是 + B)"
+            style="padding: 0.75rem; border: 1px solid #DDD; border-radius: 8px;">
+        <textarea name="explanation" placeholder="Detailed Explanation (HTML supported)"
+            style="padding: 0.75rem; border: 1px solid #DDD; border-radius: 8px; min-height: 100px;"></textarea>
+
+        <div style="background: #f0f4f8; padding: 1rem; border-radius: 8px;">
+            <p style="margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem;">Examples (JSON Format):</p>
+            <textarea name="examplesJson"
+                style="width: 100%; padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px; font-family: monospace; min-height: 100px;">[
+  { "hanzi": "我是学生", "pinyin": "Wǒ shì xuésheng", "meaning": "Tôi là học sinh" },
+  { "hanzi": "他是老师", "pinyin": "Tā shì lǎoshī", "meaning": "Anh ấy là giáo viên" }
+]</textarea>
+        </div>
+
+        <button type="submit" class="btn">Add Grammar Point</button>
+    </form>
+</div>
+
+<h2>Current Grammar Points (<%= lesson.grammarPoints.length %>)</h2>
+<div style="display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1rem;">
+    <% lesson.grammarPoints.forEach((gp, index)=> { %>
+        <div class="card" style="border-left: 5px solid var(--primary);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h3 style="color: var(--primary);">
+                        <%= gp.title %>
+                    </h3>
+                    <p
+                        style="background: #f8fafc; padding: 0.5rem 1rem; border-radius: 4px; border: 1px dashed #cbd5e1; display: inline-block; margin: 10px 0; font-family: monospace; font-weight: bold;">
+                        <%= gp.formula %>
+                    </p>
+                </div>
+                <form action="/admin/lessons/<%= lesson._id %>/grammar/delete/<%= index %>" method="POST"
+                    onsubmit="return confirm('Delete this grammar point?')">
+                    <button type="submit"
+                        style="background: #fee2e2; color: #ef4444; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600;">Delete</button>
+                </form>
+            </div>
+
+            <div style="margin-top: 10px; color: #475569; line-height: 1.6;">
+                <%- gp.explanation %>
+            </div>
+
+            <% if(gp.examples && gp.examples.length> 0) { %>
+                <div style="margin-top: 1.5rem; background: #f9fafb; padding: 1rem; border-radius: 8px;">
+                    <p style="font-weight: 600; margin-bottom: 10px; font-size: 0.9rem;">Ví dụ mẫu:</p>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <% gp.examples.forEach(ex=> { %>
+                            <div
+                                style="padding: 10px; background: white; border-radius: 6px; border: 1px solid #e2e8f0;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <span style="font-size: 1.1rem; font-weight: 500; color: #1e293b;">
+                                            <%= ex.hanzi %>
+                                        </span>
+                                        <span style="color: #64748b; margin-left: 10px;">[<%= ex.pinyin %>]</span>
+                                    </div>
+                                    <audio src="<%= ex.audioUrl %>" controls style="height: 30px;"></audio>
+                                </div>
+                                <p style="margin-top: 5px; color: #475569; font-size: 0.9rem;">
+                                    <%= ex.meaning %>
+                                </p>
+                            </div>
+                            <% }) %>
+                    </div>
+                </div>
+                <% } %>
+        </div>
+        <% }) %>
+
+            <% if(lesson.grammarPoints.length===0) { %>
+                <p
+                    style="text-align: center; color: #94a3b8; padding: 2rem; background: white; border-radius: 12px; border: 1px dashed #cbd5e1;">
+                    Chưa có điểm ngữ pháp nào được cập nhật.</p>
+                <% } %>
+</div>

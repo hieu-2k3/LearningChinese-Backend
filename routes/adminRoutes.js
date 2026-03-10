@@ -84,6 +84,43 @@ router.post('/lessons/:id/exercises/delete/:exIndex', async (req, res) => {
     res.redirect(`/admin/lessons/${req.params.id}/exercises`);
 });
 
+// Manage Lesson Grammar
+router.get('/lessons/:id/grammar', async (req, res) => {
+    const lesson = await Lesson.findById(req.params.id);
+    res.render('lesson_grammar', { lesson });
+});
+
+router.post('/lessons/:id/grammar/add', async (req, res) => {
+    const { title, formula, explanation, examplesJson } = req.body;
+    let examples = [];
+    try {
+        examples = JSON.parse(examplesJson);
+        // Auto-generate TTS for each example
+        for (let ex of examples) {
+            if (ex.hanzi) {
+                const encoded = encodeURIComponent(ex.hanzi);
+                ex.audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=zh-CN&client=tw-ob`;
+            }
+        }
+    } catch (e) {
+        console.error("JSON Parse error for examples", e);
+    }
+
+    await Lesson.findByIdAndUpdate(req.params.id, {
+        $push: {
+            grammarPoints: { title, formula, explanation, examples }
+        }
+    });
+    res.redirect(`/admin/lessons/${req.params.id}/grammar`);
+});
+
+router.post('/lessons/:id/grammar/delete/:gIndex', async (req, res) => {
+    const lesson = await Lesson.findById(req.params.id);
+    lesson.grammarPoints.splice(req.params.gIndex, 1);
+    await lesson.save();
+    res.redirect(`/admin/lessons/${req.params.id}/grammar`);
+});
+
 // Manage Users
 router.get('/users', async (req, res) => {
     const users = await User.find();

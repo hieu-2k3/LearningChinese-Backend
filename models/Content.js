@@ -45,6 +45,17 @@ const lessonSchema = new mongoose.Schema({
         }],
         explanation: String
     }],
+    grammarPoints: [{
+        title: String,
+        formula: String,
+        explanation: String,
+        examples: [{
+            hanzi: String,
+            pinyin: String,
+            meaning: String,
+            audioUrl: String
+        }]
+    }],
     quizzes: [{
         question: String,
         options: [String],
