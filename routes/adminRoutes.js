@@ -3,6 +3,11 @@ const { Lesson, Word, Listening } = require('../models/Content');
 const User = require('../models/User');
 const { protect, restrictTo } = require('../middleware/auth');
 const { cloudinary } = require('../utils/storage');
+const { EdgeTTS } = require('node-edge-tts');
+const mp3Duration = require('mp3-duration');
+const fs = require('fs');
+const path = require('path');
+const streamifier = require('streamifier');
 
 const router = express.Router();
 
@@ -123,6 +128,81 @@ router.post('/listenings/:id/dialogues/delete/:dIndex', async (req, res) => {
     listening.dialogues.splice(req.params.dIndex, 1);
     await listening.save();
     res.redirect(`/admin/listenings/${req.params.id}/dialogues`);
+});
+
+router.post('/listenings/:id/generate-audio', async (req, res) => {
+    try {
+        const listening = await Listening.findById(req.params.id);
+        if (!listening || listening.dialogues.length === 0) {
+            return res.redirect(`/admin/listenings/${req.params.id}/dialogues`);
+        }
+
+        let audioBuffers = [];
+        let currentTime = 0;
+
+        // Microsoft Edge TTS Voices
+        const VOICE_FEMALE = 'zh-CN-XiaoxiaoNeural';
+        const VOICE_MALE = 'zh-CN-YunxiNeural';
+
+        // Sort dialogues by startTime if they have it, but for generation we usually go in sequence
+        // We'll use the current order in the array
+        for (let i = 0; i < listening.dialogues.length; i++) {
+            const dialogue = listening.dialogues[i];
+
+            // Choose voice based on gender (A=Female, B=Male by default)
+            const voiceName = (dialogue.gender === 'male') ? VOICE_MALE : VOICE_FEMALE;
+            const tts = new EdgeTTS({ voice: voiceName });
+
+            const tempFile = path.join(__dirname, `../temp_audio_${Date.now()}_${i}.mp3`);
+
+            // Generate to temp file (node-edge-tts works with files)
+            await tts.ttsPromise(dialogue.hanzi, tempFile);
+
+            // Read back to buffer
+            const buffer = fs.readFileSync(tempFile);
+            const durationSec = await mp3Duration(buffer);
+
+            // Update dialogue timestamps in memory
+            dialogue.startTime = parseFloat(currentTime.toFixed(1));
+            dialogue.endTime = parseFloat((currentTime + durationSec).toFixed(1));
+
+            audioBuffers.push(buffer);
+            currentTime += durationSec;
+
+            // Clean up temp file
+            fs.unlinkSync(tempFile);
+        }
+
+        // Concatenate all buffers into one final audio file
+        const finalBuf = Buffer.concat(audioBuffers);
+
+        // Upload to Cloudinary
+        let cld_upload_stream = cloudinary.uploader.upload_stream(
+            {
+                resource_type: "video",
+                folder: "chinese_learning_audio"
+            },
+            async function (error, result) {
+                if (error) {
+                    console.error("Cloudinary error:", error);
+                    return res.status(500).json({ error: "Upload failed" });
+                }
+
+                // Update basic info
+                listening.audioUrl = result.secure_url;
+                listening.duration = Math.ceil(currentTime);
+
+                await listening.save();
+                res.redirect(`/admin/listenings/${listening._id}/dialogues`);
+            }
+        );
+
+        streamifier.createReadStream(finalBuf).pipe(cld_upload_stream);
+
+    } catch (err) {
+        console.error("Audio generation error:", err);
+        res.status(500).json({ error: "Audio generation failed", details: err.message });
+    }
 });
 
 module.exports = router;
