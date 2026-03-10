@@ -2,6 +2,10 @@ const express = require('express');
 const { Lesson, Word, Listening } = require('../models/Content');
 const User = require('../models/User');
 const { protect, restrictTo } = require('../middleware/auth');
+const googleTTS = require('google-tts-api');
+const mp3Duration = require('mp3-duration');
+const streamifier = require('streamifier');
+const { cloudinary } = require('../utils/storage');
 
 const router = express.Router();
 
@@ -116,6 +120,56 @@ router.post('/listenings/:id/dialogues/delete/:dIndex', async (req, res) => {
     listening.dialogues.splice(req.params.dIndex, 1);
     await listening.save();
     res.redirect(`/admin/listenings/${req.params.id}/dialogues`);
+});
+
+router.post('/listenings/:id/generate-audio', async (req, res) => {
+    try {
+        const listening = await Listening.findById(req.params.id);
+        if (!listening || listening.dialogues.length === 0) {
+            return res.redirect(`/admin/listenings/${req.params.id}/dialogues`);
+        }
+
+        let audioBuffers = [];
+        let currentTime = 0;
+
+        for (let i = 0; i < listening.dialogues.length; i++) {
+            const dialogue = listening.dialogues[i];
+
+            const base64 = await googleTTS.getAudioBase64(dialogue.hanzi, {
+                lang: 'zh-CN',
+                slow: false,
+                host: 'https://translate.google.com',
+            });
+            const buffer = Buffer.from(base64, 'base64');
+            const durationSec = await mp3Duration(buffer);
+
+            dialogue.startTime = parseFloat(currentTime.toFixed(1));
+            dialogue.endTime = parseFloat((currentTime + durationSec).toFixed(1));
+
+            audioBuffers.push(buffer);
+            currentTime += durationSec;
+        }
+
+        const finalBuf = Buffer.concat(audioBuffers);
+
+        let cld_upload_stream = cloudinary.uploader.upload_stream(
+            { resource_type: "video" },
+            async function (error, result) {
+                if (error) {
+                    console.error("Cloudinary error:", error);
+                    return res.redirect(`/admin/listenings/${listening._id}/dialogues`);
+                }
+                listening.audioUrl = result.secure_url;
+                listening.duration = Math.ceil(currentTime);
+                await listening.save();
+                res.redirect(`/admin/listenings/${listening._id}/dialogues`);
+            }
+        );
+        streamifier.createReadStream(finalBuf).pipe(cld_upload_stream);
+    } catch (err) {
+        console.error("Audio generation error:", err);
+        res.redirect(`/admin/listenings/${req.params.id}/dialogues`);
+    }
 });
 
 module.exports = router;
