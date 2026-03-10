@@ -20,4 +20,7 @@ router.get('/lessons/:id/practice', contentController.getLessonPractice);
 router.post('/progress/update', contentController.updateProgress);
 router.get('/leaderboard', contentController.getLeaderboard);
 
+router.get('/listenings', contentController.getAllListenings);
+router.get('/listenings/:id', contentController.getListeningById);
+
 module.exports = router;

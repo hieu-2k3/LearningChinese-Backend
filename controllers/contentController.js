@@ -197,3 +197,56 @@ exports.getLessonPractice = async (req, res) => {
         res.status(400).json({ status: 'fail', message: err.message });
     }
 };
+
+exports.getAllListenings = async (req, res) => {
+    try {
+        const hsk = parseInt(req.query.hsk) || 1;
+        const listenings = await Listening.find({ hskLevel: hsk }).sort('order');
+
+        // Group by category for the SwiftUI App
+        const groupedData = listenings.reduce((acc, item) => {
+            const cat = item.category || 'Khởi động';
+            if (!acc[cat]) {
+                acc[cat] = [];
+            }
+            acc[cat].push({
+                _id: item._id,
+                title: item.title,
+                subTitle: item.subTitle,
+                duration: item.duration,
+                order: item.order
+            });
+            return acc;
+        }, {});
+
+        // Format into an array of sections
+        const sections = Object.keys(groupedData).map(cat => ({
+            category: cat,
+            count: groupedData[cat].length,
+            items: groupedData[cat]
+        }));
+
+        res.status(200).json({
+            status: 'success',
+            hskLevel: hsk,
+            data: { sections }
+        });
+    } catch (err) {
+        res.status(400).json({ status: 'fail', message: err.message });
+    }
+};
+
+exports.getListeningById = async (req, res) => {
+    try {
+        const listening = await Listening.findById(req.params.id);
+        if (!listening) {
+            return res.status(404).json({ status: 'fail', message: 'Không tìm thấy bài nghe' });
+        }
+        res.status(200).json({
+            status: 'success',
+            data: { listening }
+        });
+    } catch (err) {
+        res.status(400).json({ status: 'fail', message: err.message });
+    }
+};

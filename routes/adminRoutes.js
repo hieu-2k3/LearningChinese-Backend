@@ -84,4 +84,38 @@ router.get('/users', async (req, res) => {
     res.render('users', { users });
 });
 
+// Manage Listenings
+router.get('/listenings', async (req, res) => {
+    const hsk = req.query.hsk || 1;
+    const listenings = await Listening.find({ hskLevel: hsk }).sort('order');
+    res.render('listenings', { listenings, currentHsk: hsk });
+});
+
+router.post('/listenings/add', async (req, res) => {
+    await Listening.create(req.body);
+    res.redirect(`/admin/listenings?hsk=${req.body.hskLevel}`);
+});
+
+router.post('/listenings/delete/:id', async (req, res) => {
+    const l = await Listening.findByIdAndDelete(req.params.id);
+    res.redirect(`/admin/listenings?hsk=${l ? l.hskLevel : 1}`);
+});
+
+router.get('/listenings/:id/dialogues', async (req, res) => {
+    const listening = await Listening.findById(req.params.id);
+    res.render('listening_dialogues', { listening });
+});
+
+router.post('/listenings/:id/dialogues/add', async (req, res) => {
+    await Listening.findByIdAndUpdate(req.params.id, { $push: { dialogues: req.body } });
+    res.redirect(`/admin/listenings/${req.params.id}/dialogues`);
+});
+
+router.post('/listenings/:id/dialogues/delete/:dIndex', async (req, res) => {
+    const listening = await Listening.findById(req.params.id);
+    listening.dialogues.splice(req.params.dIndex, 1);
+    await listening.save();
+    res.redirect(`/admin/listenings/${req.params.id}/dialogues`);
+});
+
 module.exports = router;

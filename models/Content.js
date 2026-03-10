@@ -57,11 +57,21 @@ const lessonSchema = new mongoose.Schema({
 
 const listeningSchema = new mongoose.Schema({
     title: { type: String, required: true },
+    subTitle: { type: String },
+    hskLevel: { type: Number, required: true, min: 1, max: 9, default: 1 },
+    category: { type: String, required: true, default: "Giao tiếp cơ bản" }, // e.g. "Giao tiếp cơ bản"
     audioUrl: { type: String, required: true },
-    transcript: { type: String },
-    translation: { type: String },
-    lessonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Lesson' }
-});
+    duration: { type: Number, default: 0 }, // audio duration in seconds
+    dialogues: [{
+        speaker: { type: String, default: "A" },
+        hanzi: { type: String, required: true },
+        pinyin: { type: String },
+        translation: { type: String },
+        startTime: { type: Number, default: 0 },
+        endTime: { type: Number, default: 0 }
+    }],
+    order: { type: Number, default: 0 }
+}, { timestamps: true });
 
 module.exports = {
     Lesson: mongoose.model('Lesson', lessonSchema),

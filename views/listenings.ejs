@@ -1,0 +1,76 @@
+<div class="header">
+    <h2>Luyện Nghe (Karaoke Mode)</h2>
+</div>
+
+<div class="hsk-tabs" style="margin-bottom: 2rem; display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 10px;">
+    <% for(let i=1; i<=9; i++) { %>
+        <a href="/admin/listenings?hsk=<%= i %>" class="btn <%= currentHsk == i ? '' : 'btn-outline' %>"
+            style="<%= currentHsk == i ? '' : 'background: white; color: var(--primary); border: 1px solid var(--primary);' %>">
+            HSK <%= i %>
+        </a>
+        <% } %>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Category</th>
+            <th>Title</th>
+            <th>Duration</th>
+            <th>Order</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% listenings.sort((a,b)=> a.order - b.order).forEach(l => { %>
+            <tr>
+                <td><span style="background: #EEE; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">
+                        <%= l.category %>
+                    </span></td>
+                <td>
+                    <strong>
+                        <%= l.title %>
+                    </strong><br>
+                    <small style="color: #666;">
+                        <%= l.subTitle %>
+                    </small>
+                </td>
+                <td>
+                    <%= l.duration %>s
+                </td>
+                <td>#<%= l.order %>
+                </td>
+                <td>
+                    <a href="/admin/listenings/<%= l._id %>/dialogues"
+                        style="color: var(--primary); font-weight: 600;">Edit Dialogues</a> |
+                    <form action="/admin/listenings/delete/<%= l._id %>" method="POST" style="display:inline;">
+                        <button type="submit"
+                            style="color: #EF4444; background: none; border: none; cursor: pointer;">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            <% }) %>
+    </tbody>
+</table>
+
+<div class="card" style="margin-top: 3rem;">
+    <h3>Add New Listening to HSK <%= currentHsk %>
+    </h3>
+    <form action="/admin/listenings/add" method="POST"
+        style="margin-top: 1rem; display: grid; gap: 1rem; grid-template-columns: 1fr 1fr;">
+        <input type="hidden" name="hskLevel" value="<%= currentHsk %>">
+        <input type="text" name="category" placeholder="Category (e.g. Giao tiếp cơ bản)" required
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        <input type="text" name="title" placeholder="Title (e.g. Chào hỏi lần đầu)" required
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        <input type="text" name="subTitle" placeholder="Subtitle (e.g. Nǐ hǎo)"
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        <input type="text" name="audioUrl" placeholder="Audio URL (.mp3 link)" required
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        <input type="number" name="duration" placeholder="Duration in seconds (e.g. 80)" required
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        <input type="number" name="order" placeholder="Display Order (e.g. 1)" required
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        <button type="submit" class="btn" style="grid-column: span 2;">Create Listening Track</button>
+    </form>
+</div>

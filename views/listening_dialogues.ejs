@@ -1,0 +1,87 @@
+<div class="header">
+    <a href="/admin/listenings?hsk=<%= listening.hskLevel %>"
+        style="text-decoration: none; color: var(--primary); font-weight: 600;">← Back to HSK <%= listening.hskLevel %>
+            </a>
+    <h1>Manage Dialogues: <%= listening.title %>
+    </h1>
+</div>
+
+<div class="card" style="margin-bottom: 2rem;">
+    <h3>Audio Preview</h3>
+    <audio controls style="width: 100%; margin-top: 10px;">
+        <source src="<%= listening.audioUrl %>" type="audio/mpeg">
+    </audio>
+    <p style="color: #666; font-size: 0.9rem; margin-top: 10px;">Play the audio to record the start time and end time
+        for each sentence.</p>
+</div>
+
+<div class="card" style="margin-bottom: 2rem;">
+    <h3>Add Dialogue (Karaoke Line)</h3>
+    <form action="/admin/listenings/<%= listening._id %>/dialogues/add" method="POST"
+        style="margin-top: 1rem; display: grid; gap: 1rem; grid-template-columns: 1fr 1fr;">
+        <div style="display: flex; gap: 10px;">
+            <input type="text" name="speaker" placeholder="Speaker (A or B)" required
+                style="width: 60px; padding: 0.5rem; text-align: center; border: 1px solid #DDD; border-radius: 4px;">
+            <input type="text" name="hanzi" placeholder="Hanzi Sentence (e.g. 你好)" required
+                style="flex: 1; padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        </div>
+        <input type="text" name="pinyin" placeholder="Pinyin (Optional)"
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        <input type="text" name="translation" placeholder="Translation (Optional)"
+            style="grid-column: span 2; padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+
+        <div style="display: flex; gap: 10px; align-items: center; grid-column: span 2;">
+            <label style="font-weight: 500;">Timecode (sec):</label>
+            <input type="number" step="0.1" name="startTime" placeholder="Start (e.g. 0.0)" required
+                style="width: 100px; padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+            <span>to</span>
+            <input type="number" step="0.1" name="endTime" placeholder="End (e.g. 3.5)" required
+                style="width: 100px; padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        </div>
+
+        <button type="submit" class="btn" style="grid-column: span 2;">Add Dialogue Line</button>
+    </form>
+</div>
+
+<h2>Current Dialogues (<%= listening.dialogues.length %>)</h2>
+<table>
+    <thead>
+        <tr>
+            <th style="width: 50px;">Spk</th>
+            <th>Hanzi</th>
+            <th>Pinyin / Translation</th>
+            <th>Timecode</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% listening.dialogues.sort((a,b)=> a.startTime - b.startTime).forEach((d, index) => { %>
+            <tr>
+                <td><span
+                        style="background: var(--primary); color: white; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; justify-content: center; align-items: center; font-size: 0.8rem; font-weight: bold;">
+                        <%= d.speaker %>
+                    </span></td>
+                <td style="font-size: 1.2rem;">
+                    <%= d.hanzi %>
+                </td>
+                <td>
+                    <small style="color: #666;">
+                        <%= d.pinyin %>
+                    </small><br>
+                    <small>
+                        <%= d.translation %>
+                    </small>
+                </td>
+                <td style="font-family: monospace; font-size: 0.9rem; color: #555;">[<%= d.startTime %> - <%= d.endTime
+                            %>]</td>
+                <td>
+                    <form action="/admin/listenings/<%= listening._id %>/dialogues/delete/<%= index %>" method="POST"
+                        style="display:inline;">
+                        <button type="submit"
+                            style="color: #EF4444; background: none; border: none; cursor: pointer;">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            <% }) %>
+    </tbody>
+</table>

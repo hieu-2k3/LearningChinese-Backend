@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,6 +15,7 @@
             --text-main: #374151;
             --sidebar-width: 260px;
         }
+
         body {
             font-family: 'Inter', sans-serif;
             margin: 0;
@@ -21,6 +23,7 @@
             color: var(--text-main);
             display: flex;
         }
+
         aside {
             width: var(--sidebar-width);
             background: var(--dark);
@@ -29,12 +32,14 @@
             position: fixed;
             padding: 2rem 1rem;
         }
+
         aside h2 {
             font-size: 1.25rem;
             margin-bottom: 2rem;
             color: var(--secondary);
             text-align: center;
         }
+
         aside nav a {
             display: block;
             color: #D1D5DB;
@@ -44,35 +49,54 @@
             margin-bottom: 0.5rem;
             transition: all 0.2s;
         }
-        aside nav a:hover, aside nav a.active {
+
+        aside nav a:hover,
+        aside nav a.active {
             background: var(--primary);
             color: white;
         }
+
         main {
             margin-left: var(--sidebar-width);
             width: calc(100% - var(--sidebar-width));
             padding: 2rem;
         }
+
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 2rem;
         }
+
         .card-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
+
         .card {
             background: white;
             padding: 1.5rem;
             border-radius: 0.75rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-        .card h3 { margin: 0; color: #6B7280; font-size: 0.875rem; text-transform: uppercase; }
-        .card p { margin: 0.5rem 0 0; font-size: 1.5rem; font-weight: 700; color: var(--dark); }
+
+        .card h3 {
+            margin: 0;
+            color: #6B7280;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+        }
+
+        .card p {
+            margin: 0.5rem 0 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
         table {
             width: 100%;
             background: white;
@@ -81,12 +105,20 @@
             overflow: hidden;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-        th, td {
+
+        th,
+        td {
             padding: 1rem;
             text-align: left;
             border-bottom: 1px solid #E5E7EB;
         }
-        th { background: #F3F4F6; color: #4B5563; font-weight: 600; }
+
+        th {
+            background: #F3F4F6;
+            color: #4B5563;
+            font-weight: 600;
+        }
+
         .btn {
             background: var(--primary);
             color: white;
@@ -97,21 +129,28 @@
             text-decoration: none;
             font-size: 0.875rem;
         }
+
         .badge {
             padding: 0.25rem 0.5rem;
             border-radius: 9999px;
             font-size: 0.75rem;
             font-weight: 600;
         }
-        .badge-xp { background: #EEF2FF; color: #4338CA; }
+
+        .badge-xp {
+            background: #EEF2FF;
+            color: #4338CA;
+        }
     </style>
 </head>
+
 <body>
     <aside>
         <h2>中文 CMS</h2>
         <nav>
-            <a href="/admin" class="active">Dashboard</a>
+            <a href="/admin">Dashboard</a>
             <a href="/admin/lessons">Lessons</a>
+            <a href="/admin/listenings">Listenings</a>
             <a href="/admin/users">Users</a>
             <a href="/api/v1/auth/logout">Logout</a>
         </nav>
@@ -124,4 +163,5 @@
         <%- body %>
     </main>
 </body>
+
 </html>
