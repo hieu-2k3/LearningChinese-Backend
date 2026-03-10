@@ -108,7 +108,13 @@ router.get('/listenings/:id/dialogues', async (req, res) => {
 });
 
 router.post('/listenings/:id/dialogues/add', async (req, res) => {
-    await Listening.findByIdAndUpdate(req.params.id, { $push: { dialogues: req.body } });
+    const newDialogue = { ...req.body };
+    // Auto-attach Google TTS audio URL for this sentence (no API key needed)
+    if (newDialogue.hanzi) {
+        const encoded = encodeURIComponent(newDialogue.hanzi);
+        newDialogue.audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=zh-CN&client=tw-ob`;
+    }
+    await Listening.findByIdAndUpdate(req.params.id, { $push: { dialogues: newDialogue } });
     res.redirect(`/admin/listenings/${req.params.id}/dialogues`);
 });
 

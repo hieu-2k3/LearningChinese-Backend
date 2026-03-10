@@ -67,6 +67,7 @@ const listeningSchema = new mongoose.Schema({
         hanzi: { type: String, required: true },
         pinyin: { type: String },
         translation: { type: String },
+        audioUrl: { type: String }, // Google TTS URL per sentence
         startTime: { type: Number, default: 0 },
         endTime: { type: Number, default: 0 }
     }],
