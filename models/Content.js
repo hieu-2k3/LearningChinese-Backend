@@ -64,10 +64,11 @@ const listeningSchema = new mongoose.Schema({
     duration: { type: Number, default: 0 }, // audio duration in seconds
     dialogues: [{
         speaker: { type: String, default: "A" },
+        gender: { type: String, enum: ['male', 'female'], default: 'female' },
         hanzi: { type: String, required: true },
         pinyin: { type: String },
         translation: { type: String },
-        audioUrl: { type: String }, // Google TTS URL per sentence
+        audioUrl: { type: String }, // Fallback Google TTS URL
         startTime: { type: Number, default: 0 },
         endTime: { type: Number, default: 0 }
     }],
