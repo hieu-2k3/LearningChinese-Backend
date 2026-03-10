@@ -60,7 +60,7 @@ const listeningSchema = new mongoose.Schema({
     subTitle: { type: String },
     hskLevel: { type: Number, required: true, min: 1, max: 9, default: 1 },
     category: { type: String, required: true, default: "Giao tiếp cơ bản" }, // e.g. "Giao tiếp cơ bản"
-    audioUrl: { type: String, required: true },
+    audioUrl: { type: String },
     duration: { type: Number, default: 0 }, // audio duration in seconds
     dialogues: [{
         speaker: { type: String, default: "A" },
