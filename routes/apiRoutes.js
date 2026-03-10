@@ -1,7 +1,9 @@
 const express = require('express');
 const authController = require('../controllers/authController');
 const contentController = require('../controllers/contentController');
+const speechController = require('../controllers/speechController');
 const { protect } = require('../middleware/auth');
+const { memoryUpload } = require('../utils/storage');
 
 const router = express.Router();
 
@@ -22,5 +24,8 @@ router.get('/leaderboard', contentController.getLeaderboard);
 
 router.get('/listenings', contentController.getAllListenings);
 router.get('/listenings/:id', contentController.getListeningById);
+
+// Speech Analysis
+router.post('/speech/assess', memoryUpload.single('audio'), speechController.assessPronunciation);
 
 module.exports = router;
