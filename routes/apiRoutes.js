@@ -1,6 +1,7 @@
 const express = require('express');
 const authController = require('../controllers/authController');
 const contentController = require('../controllers/contentController');
+const pinyinController = require('../controllers/pinyinController');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();
@@ -22,5 +23,10 @@ router.get('/leaderboard', contentController.getLeaderboard);
 
 router.get('/listenings', contentController.getAllListenings);
 router.get('/listenings/:id', contentController.getListeningById);
+
+// Pinyin Routes
+router.get('/pinyin', pinyinController.getAllPinyin);
+router.get('/pinyin-rules', pinyinController.getAllRules);
+router.get('/pinyin/:sound', pinyinController.getPinyinDetail);
 
 module.exports = router;
