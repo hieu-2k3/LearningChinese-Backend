@@ -1,5 +1,6 @@
 const express = require('express');
 const { Lesson, Word, Listening, Reading } = require('../models/Content');
+const { HskExam, HskResult } = require('../models/HskContent');
 const User = require('../models/User');
 const readingController = require('../controllers/readingController');
 const { protect, restrictTo } = require('../middleware/auth');
@@ -259,5 +260,38 @@ router.post('/readings/delete/:id', async (req, res) => {
 });
 
 router.post('/readings/analyze', readingController.analyzeText);
+
+// HSK Exams Management
+router.get('/hsk-exams', async (req, res) => {
+    const hsk = req.query.hsk || 1;
+    const exams = await HskExam.find({ hskLevel: hsk }).sort('order');
+    res.render('hsk_exams', { exams, currentHsk: hsk });
+});
+
+router.post('/hsk-exams/add', async (req, res) => {
+    await HskExam.create(req.body);
+    res.redirect(`/admin/hsk-exams?hsk=${req.body.hskLevel}`);
+});
+
+router.post('/hsk-exams/delete/:id', async (req, res) => {
+    const e = await HskExam.findByIdAndDelete(req.params.id);
+    res.redirect(`/admin/hsk-exams?hsk=${e ? e.hskLevel : 1}`);
+});
+
+router.get('/hsk-exams/:id/details', async (req, res) => {
+    const exam = await HskExam.findById(req.params.id);
+    res.render('hsk_exam_details', { exam });
+});
+
+router.post('/hsk-exams/:id/update-content', async (req, res) => {
+    try {
+        const { sectionsJson } = req.body;
+        const sections = JSON.parse(sectionsJson);
+        await HskExam.findByIdAndUpdate(req.params.id, { sections });
+        res.redirect(`/admin/hsk-exams/${req.params.id}/details`);
+    } catch (err) {
+        res.status(400).send("Invalid JSON format: " + err.message);
+    }
+});
 
 module.exports = router;

@@ -1,0 +1,66 @@
+<div class="header">
+    <h2>HSK Mock Exams Management</h2>
+</div>
+
+<div class="hsk-tabs" style="margin-bottom: 2rem; display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 10px;">
+    <% for(let i=1; i<=9; i++) { %>
+        <a href="/admin/hsk-exams?hsk=<%= i %>" class="btn <%= currentHsk == i ? '' : 'btn-outline' %>"
+            style="<%= currentHsk == i ? '' : 'background: white; color: var(--primary); border: 1px solid var(--primary);' %>">
+            HSK <%= i %>
+        </a>
+        <% } %>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Order</th>
+            <th>Title</th>
+            <th>Duration</th>
+            <th>Sections</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% exams.forEach(exam=> { %>
+            <tr>
+                <td>#<%= exam.order %>
+                </td>
+                <td><strong>
+                        <%= exam.title %>
+                    </strong></td>
+                <td>
+                    <%= exam.duration %> min
+                </td>
+                <td><span class="badge badge-xp">
+                        <%= exam.sections.length %> sections
+                    </span></td>
+                <td>
+                    <a href="/admin/hsk-exams/<%= exam._id %>/details"
+                        style="color: var(--primary); font-weight:600;">Manage Questions</a> |
+                    <form action="/admin/hsk-exams/delete/<%= exam._id %>" method="POST" style="display:inline;">
+                        <button type="submit"
+                            style="color: #EF4444; background: none; border: none; cursor: pointer; font-weight: 600;">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            <% }) %>
+    </tbody>
+</table>
+
+<div class="card" style="margin-top: 3rem;">
+    <h3>Create New HSK <%= currentHsk %> Exam</h3>
+    <form action="/admin/hsk-exams/add" method="POST"
+        style="margin-top: 1rem; display: grid; gap: 1rem; grid-template-columns: 1fr 1fr;">
+        <input type="hidden" name="hskLevel" value="<%= currentHsk %>">
+        <input type="text" name="title" placeholder="Exam Title (e.g. HSK 1 - Đề số 6)" required
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        <input type="number" name="duration" placeholder="Duration (min)" value="40" required
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        <input type="number" name="order" placeholder="Order" required
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        <input type="text" name="thumbnail" placeholder="Thumbnail URL (Optional)"
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+        <button type="submit" class="btn" style="grid-column: span 2;">Create Basic Exam Structure</button>
+    </form>
+</div>

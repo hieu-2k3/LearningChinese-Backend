@@ -1,0 +1,76 @@
+<div class="header">
+    <h2>Manage Content: <%= exam.title %>
+    </h2>
+    <a href="/admin/hsk-exams?hsk=<%= exam.hskLevel %>" class="btn btn-outline"
+        style="background: white; color: var(--primary); border: 1px solid var(--primary);">Back to List</a>
+</div>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3>Exam Data (JSON Format)</h3>
+        <span class="badge badge-xp">Level HSK <%= exam.hskLevel %></span>
+    </div>
+
+    <p style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">
+        💡 <b>Mẹo:</b> Một đề thi HSK rất dài (40-60 câu). Hãy sử dụng cấu trúc JSON để cập nhật hàng loạt nội dung cho
+        đề thi này.
+    </p>
+
+    <form action="/admin/hsk-exams/<%= exam._id %>/update-content" method="POST">
+        <textarea name="sectionsJson" id="sectionsJson"
+            style="width: 100%; min-height: 500px; font-family: monospace; padding: 1rem; border: 1px solid #DDD; border-radius: 8px; background: #fdfdfd;"><%= JSON.stringify(exam.sections, null, 2) %></textarea>
+
+        <div style="margin-top: 1.5rem; display: flex; gap: 10px;">
+            <button type="submit" class="btn">💾 Save All Content</button>
+            <button type="button" id="btnTemplate" class="btn" style="background: #10B981;">📋 Load HSK
+                Template</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.getElementById('btnTemplate').addEventListener('click', () => {
+        const hsk1Template = [
+            {
+                "name": "Listening Section",
+                "audioUrl": "https://example.com/audio/hsk1_listening.mp3",
+                "parts": [
+                    {
+                        "partNumber": 1,
+                        "instruction": "Nghe hiểu: Chọn Đúng/Sai dựa trên ảnh",
+                        "questions": [
+                            {
+                                "type": "true_false_image",
+                                "image": "https://example.com/img1.jpg",
+                                "audioTimestamp": { "start": 0, "end": 10 },
+                                "correctAnswer": "true",
+                                "explanation": "Trong audio nói là 'Đi làm' khớp với ảnh."
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "Reading Section",
+                "parts": [
+                    {
+                        "partNumber": 1,
+                        "instruction": "Đọc hiểu: Chọn ảnh tương ứng với từ",
+                        "questions": [
+                            {
+                                "type": "matching_image",
+                                "text": "喝水",
+                                "images": ["https://img_a.jpg", "https://img_drinking.jpg"],
+                                "correctAnswer": "B"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ];
+
+        if (confirm("Bạn có muốn ghi đè nội dung hiện tại bằng Template mẫu không?")) {
+            document.getElementById('sectionsJson').value = JSON.stringify(hsk1Template, null, 2);
+        }
+    });
+</script>
