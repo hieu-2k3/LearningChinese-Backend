@@ -3,6 +3,7 @@ const authController = require('../controllers/authController');
 const contentController = require('../controllers/contentController');
 const pinyinController = require('../controllers/pinyinController');
 const readingController = require('../controllers/readingController');
+const hskController = require('../controllers/hskController');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();
@@ -33,5 +34,11 @@ router.get('/pinyin/:sound', pinyinController.getPinyinDetail);
 // Reading Routes
 router.get('/readings', readingController.getAllReadings);
 router.get('/readings/:id', readingController.getReadingById);
+
+// HSK Exam Routes
+router.get('/hsk/dashboard/:level', hskController.getHskDashboard);
+router.get('/hsk/exams/:id', hskController.getExamById);
+router.post('/hsk/submit', hskController.submitExamResult);
+router.get('/hsk/history', hskController.getExamHistory);
 
 module.exports = router;
