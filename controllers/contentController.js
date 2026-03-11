@@ -1,5 +1,9 @@
 const { Lesson, Word, Listening } = require('../models/Content');
 const User = require('../models/User');
+const Segment = require('segment');
+
+const segment = new Segment();
+segment.useDefault();
 
 exports.getAllLessons = async (req, res) => {
     try {
@@ -191,10 +195,50 @@ exports.getLessonPractice = async (req, res) => {
                         explanation: `Câu hoàn chỉnh: "${v.example}"`
                     });
                 }
+
+                // SMART IDEA: Auto-generate REORDER exercise from vocabulary example
+                if (v.example && v.example.length > 5) {
+                    const words = segment.doSegment(v.example)
+                        .map(s => s.w)
+                        .filter(w => /[\u4e00-\u9fa5]/.test(w)); // Only Chinese words
+
+                    if (words.length >= 3) {
+                        practiceSession.push({
+                            type: 'reorder',
+                            question: 'Sắp xếp các từ sau thành câu đúng:',
+                            meaning: v.meaning + " (Ví dụ)",
+                            shuffledWords: [...words].sort(() => 0.5 - Math.random()),
+                            correctAnswer: words.join(''),
+                            explanation: `Câu đúng: ${v.example}`
+                        });
+                    }
+                }
             });
         }
 
-        // 3. Shuffle the session
+        // 3. Auto-generate REORDER from Grammar Points
+        if (lesson.grammarPoints && lesson.grammarPoints.length > 0) {
+            lesson.grammarPoints.forEach(gp => {
+                gp.examples.forEach(ex => {
+                    const words = segment.doSegment(ex.hanzi)
+                        .map(s => s.w)
+                        .filter(w => /[\u4e00-\u9fa5]/.test(w));
+
+                    if (words.length >= 3) {
+                        practiceSession.push({
+                            type: 'reorder',
+                            question: `Luyện tập cấu trúc: ${gp.title}`,
+                            meaning: ex.meaning,
+                            shuffledWords: [...words].sort(() => 0.5 - Math.random()),
+                            correctAnswer: words.join(''),
+                            explanation: `Cấu trúc: ${gp.formula}`
+                        });
+                    }
+                });
+            });
+        }
+
+        // 4. Shuffle the session
         practiceSession = practiceSession.sort(() => 0.5 - Math.random());
 
         res.status(200).json({
