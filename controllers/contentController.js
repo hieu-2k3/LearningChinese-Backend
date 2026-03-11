@@ -197,16 +197,16 @@ exports.getLessonPractice = async (req, res) => {
                 }
 
                 // SMART IDEA: Auto-generate REORDER exercise from vocabulary example
-                if (v.example && v.example.length > 5) {
+                if (v.example && v.example.length >= 2) {
                     const words = segment.doSegment(v.example)
                         .map(s => s.w)
-                        .filter(w => /[\u4e00-\u9fa5]/.test(w)); // Only Chinese words
+                        .filter(w => /[\u4e00-\u9fa5]/.test(w));
 
-                    if (words.length >= 3) {
+                    if (words.length >= 2) {
                         practiceSession.push({
                             type: 'reorder',
                             question: 'Sắp xếp các từ sau thành câu đúng:',
-                            meaning: v.meaning + " (Ví dụ)",
+                            meaning: (v.meaning || "") + " (Ví dụ)",
                             shuffledWords: [...words].sort(() => 0.5 - Math.random()),
                             correctAnswer: words.join(''),
                             explanation: `Câu đúng: ${v.example}`
@@ -224,7 +224,7 @@ exports.getLessonPractice = async (req, res) => {
                         .map(s => s.w)
                         .filter(w => /[\u4e00-\u9fa5]/.test(w));
 
-                    if (words.length >= 3) {
+                    if (words.length >= 2) {
                         practiceSession.push({
                             type: 'reorder',
                             question: `Luyện tập cấu trúc: ${gp.title}`,
@@ -238,7 +238,38 @@ exports.getLessonPractice = async (req, res) => {
             });
         }
 
-        // 4. Shuffle the session
+        // 4. EMERGENCY FALLBACKS: If any type is missing, create a simplified version from vocab
+        const hasType = (t) => practiceSession.some(ex => ex.type === t);
+
+        if (!hasType('fill_blank') && lesson.vocabulary && lesson.vocabulary.length > 0) {
+            // Fallback for fill_blank: Pinyin to Hanzi
+            lesson.vocabulary.slice(0, 3).forEach(v => {
+                practiceSession.push({
+                    type: 'fill_blank',
+                    question: `Chọn chữ Hán đúng cho phiên âm "${v.pinyin}":`,
+                    options: lesson.vocabulary.map(item => item.hanzi).sort(() => 0.5 - Math.random()).slice(0, 4),
+                    correctAnswer: v.hanzi,
+                    explanation: `${v.hanzi} đọc là ${v.pinyin}`
+                });
+            });
+        }
+
+        if (!hasType('reorder') && lesson.vocabulary && lesson.vocabulary.length > 0) {
+            // Fallback for reorder: Split the word into characters if it's a multi-char word
+            lesson.vocabulary.filter(v => v.hanzi.length >= 2).slice(0, 3).forEach(v => {
+                const chars = v.hanzi.split('');
+                practiceSession.push({
+                    type: 'reorder',
+                    question: `Ghép các chữ cái để tạo thành từ "${v.meaning}":`,
+                    meaning: v.pinyin,
+                    shuffledWords: [...chars].sort(() => 0.5 - Math.random()),
+                    correctAnswer: v.hanzi,
+                    explanation: `Từ đúng: ${v.hanzi}`
+                });
+            });
+        }
+
+        // 5. Shuffle the session
         practiceSession = practiceSession.sort(() => 0.5 - Math.random());
 
         res.status(200).json({
