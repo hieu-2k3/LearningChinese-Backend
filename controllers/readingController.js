@@ -1,7 +1,10 @@
 const { Reading } = require('../models/Content');
-const nodejieba = require('nodejieba');
+const Segment = require('segment');
 const { pinyin } = require('pinyin');
 const hanzi = require('hanzi');
+
+const segment = new Segment();
+segment.useDefault();
 
 let isHanziStarted = false;
 
@@ -69,8 +72,8 @@ exports.analyzeText = async (req, res) => {
 
         ensureHanziStarted();
 
-        // 1. Cắt từ thông minh bằng nodejieba
-        const segments = nodejieba.cut(text);
+        // 1. Cắt từ thông minh bằng segment (Pure JS)
+        const segments = segment.doSegment(text).map(s => s.w);
         const analyzedChunks = [];
 
         // Kiểm tra ký tự là chữ Hán hay Dấu câu
