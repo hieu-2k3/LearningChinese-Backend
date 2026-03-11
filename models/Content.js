@@ -86,8 +86,23 @@ const listeningSchema = new mongoose.Schema({
     order: { type: Number, default: 0 }
 }, { timestamps: true });
 
+const readingSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    hskLevel: { type: Number, required: true, min: 1, max: 9, default: 1 },
+    category: { type: String, required: true, default: "Truyện ngắn" },
+    fullTranslation: { type: String },
+    content: [{
+        text: String,
+        pinyin: String,
+        meaning: String,
+        type: { type: String, enum: ['word', 'punctuation', 'newline'], default: 'word' }
+    }],
+    order: { type: Number, default: 0 }
+}, { timestamps: true });
+
 module.exports = {
     Lesson: mongoose.model('Lesson', lessonSchema),
     Word: mongoose.model('Word', wordSchema),
-    Listening: mongoose.model('Listening', listeningSchema)
+    Listening: mongoose.model('Listening', listeningSchema),
+    Reading: mongoose.model('Reading', readingSchema)
 };

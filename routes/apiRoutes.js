@@ -2,6 +2,7 @@ const express = require('express');
 const authController = require('../controllers/authController');
 const contentController = require('../controllers/contentController');
 const pinyinController = require('../controllers/pinyinController');
+const readingController = require('../controllers/readingController');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();
@@ -28,5 +29,9 @@ router.get('/listenings/:id', contentController.getListeningById);
 router.get('/pinyin', pinyinController.getAllPinyin);
 router.get('/pinyin-rules', pinyinController.getAllRules);
 router.get('/pinyin/:sound', pinyinController.getPinyinDetail);
+
+// Reading Routes
+router.get('/readings', readingController.getAllReadings);
+router.get('/readings/:id', readingController.getReadingById);
 
 module.exports = router;

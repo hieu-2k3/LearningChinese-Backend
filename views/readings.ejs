@@ -1,0 +1,175 @@
+<div class="header">
+    <h2>Readings Management</h2>
+</div>
+
+<div class="hsk-tabs" style="margin-bottom: 2rem; display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 10px;">
+    <% for(let i=1; i<=9; i++) { %>
+        <a href="/admin/readings?hsk=<%= i %>" class="btn <%= currentHsk == i ? '' : 'btn-outline' %>"
+            style="<%= currentHsk == i ? '' : 'background: white; color: var(--primary); border: 1px solid var(--primary);' %>">
+            HSK <%= i %>
+        </a>
+        <% } %>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Order</th>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Word Count</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% readings.sort((a,b)=> a.order - b.order).forEach(reading => { %>
+            <tr>
+                <td>#<%= reading.order %>
+                </td>
+                <td><strong>
+                        <%= reading.title %>
+                    </strong></td>
+                <td><span class="badge badge-xp">
+                        <%= reading.category %>
+                    </span></td>
+                <td>
+                    <%= reading.content.length %> items
+                </td>
+                <td>
+                    <form action="/admin/readings/delete/<%= reading._id %>" method="POST" style="display:inline;">
+                        <button type="submit"
+                            style="color: #EF4444; background: none; border: none; cursor: pointer; font-weight: 600;">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            <% }) %>
+    </tbody>
+</table>
+
+<div class="card" style="margin-top: 3rem;">
+    <h3>Add New Reading to HSK <%= currentHsk %> (Auto Pinyin Generator 🪄)</h3>
+    <form id="readingForm" style="margin-top: 1rem; display: grid; gap: 1rem; grid-template-columns: 1fr 1fr;">
+        <input type="hidden" id="hskLevel" value="<%= currentHsk %>">
+
+        <input type="text" id="title" placeholder="Reading Title (e.g. Rùa và Thỏ)" required
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+
+        <input type="number" id="order" placeholder="Order (e.g. 1)" required
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+
+        <input type="text" id="category" placeholder="Category (e.g. Truyện ngụ ngôn)" required
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+
+        <input type="text" id="fullTranslation" placeholder="Toàn bộ bài dịch (Tùy chọn)"
+            style="padding: 0.5rem; border: 1px solid #DDD; border-radius: 4px;">
+
+        <textarea id="rawText" placeholder="Dán bài văn tiếng Trung vào đây... Hệ thống sẽ tự cắt từ và tạo Pinyin!"
+            style="grid-column: span 2; padding: 1rem; border: 1px solid #DDD; border-radius: 4px; min-height: 150px;"
+            required></textarea>
+
+        <div style="grid-column: span 2; display: flex; gap: 10px;">
+            <button type="button" id="btnAnalyze" class="btn" style="background: var(--secondary);">✨ Analyze &
+                Preview</button>
+            <button type="button" id="btnSave" class="btn" style="display: none;">💾 Save Reading</button>
+        </div>
+    </form>
+
+    <!-- Preview Area -->
+    <div id="previewArea"
+        style="margin-top: 2rem; display: none; padding: 1rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <h4 style="margin-top:0;">Preview & Edit (Click to edit meaning if wrong)</h4>
+        <div id="wordGrid" style="display: flex; flex-wrap: wrap; gap: 10px; line-height: 2;">
+            <!-- Words injected here via JS -->
+        </div>
+    </div>
+</div>
+
+<script>
+    let analyzedContent = [];
+
+    document.getElementById('btnAnalyze').addEventListener('click', async () => {
+        const text = document.getElementById('rawText').value;
+        if (!text) return alert("Vui lòng nhập văn bản tiếng Trung!");
+
+        const btn = document.getElementById('btnAnalyze');
+        btn.innerText = "Processing...";
+
+        try {
+            const res = await fetch('/admin/readings/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                analyzedContent = data.data.segments;
+                renderPreview();
+                document.getElementById('previewArea').style.display = 'block';
+                document.getElementById('btnSave').style.display = 'inline-block';
+            } else {
+                alert(data.message);
+            }
+        } catch (e) {
+            alert("Lỗi kết nối");
+        }
+        btn.innerText = "✨ Analyze & Preview";
+    });
+
+    function renderPreview() {
+        const grid = document.getElementById('wordGrid');
+        grid.innerHTML = '';
+
+        analyzedContent.forEach((item, index) => {
+            if (item.type === 'newline') {
+                grid.innerHTML += '<div style="width: 100%; height: 5px;"></div>';
+                return;
+            }
+            if (item.type === 'punctuation') {
+                grid.innerHTML += `<span style="font-size: 1.2rem; align-self: flex-end; padding-bottom: 5px;">${item.text}</span>`;
+                return;
+            }
+
+            const box = document.createElement('div');
+            box.style.cssText = "display: flex; flex-direction: column; align-items: center; background: white; padding: 5px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); min-width: 50px;";
+            box.innerHTML = `
+                <span style="font-size: 0.75rem; color: #64748b;">${item.pinyin}</span>
+                <span style="font-size: 1.4rem; font-weight: bold;">${item.text}</span>
+                <input type="text" value="${item.meaning}" onchange="updateMeaning(${index}, this.value)" 
+                    style="font-size: 0.7rem; width: 60px; text-align: center; border: 1px solid #e2e8f0; border-radius: 2px; margin-top: 3px;" placeholder="Nghĩa">
+            `;
+            grid.appendChild(box);
+        });
+    }
+
+    window.updateMeaning = (index, val) => {
+        analyzedContent[index].meaning = val;
+    };
+
+    document.getElementById('btnSave').addEventListener('click', async () => {
+        const payload = {
+            title: document.getElementById('title').value,
+            hskLevel: document.getElementById('hskLevel').value,
+            order: document.getElementById('order').value,
+            category: document.getElementById('category').value,
+            fullTranslation: document.getElementById('fullTranslation').value,
+            content: analyzedContent
+        };
+
+        try {
+            const res = await fetch('/admin/readings/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                window.location.reload();
+            } else {
+                alert("Lưu thất bại: " + data.message);
+            }
+        } catch (e) {
+            alert("Lỗi kết nối khi lưu");
+        }
+    });
+</script>

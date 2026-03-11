@@ -24,6 +24,7 @@
     "express": "^5.2.1",
     "express-ejs-layouts": "^2.5.1",
     "express-validator": "^7.3.1",
+    "hanzi": "^2.1.5",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.4",
     "morgan": "^1.10.1",
@@ -31,7 +32,9 @@
     "multer": "^2.1.1",
     "multer-storage-cloudinary": "^4.0.0",
     "node-edge-tts": "^1.2.10",
+    "nodejieba": "^3.5.7",
     "nodemon": "^3.1.14",
+    "pinyin": "^4.0.0",
     "streamifier": "^0.1.1"
   }
 }

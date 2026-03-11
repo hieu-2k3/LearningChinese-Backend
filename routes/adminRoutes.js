@@ -1,6 +1,7 @@
 const express = require('express');
-const { Lesson, Word, Listening } = require('../models/Content');
+const { Lesson, Word, Listening, Reading } = require('../models/Content');
 const User = require('../models/User');
+const readingController = require('../controllers/readingController');
 const { protect, restrictTo } = require('../middleware/auth');
 const { cloudinary } = require('../utils/storage');
 const { EdgeTTS } = require('node-edge-tts');
@@ -242,5 +243,21 @@ router.post('/listenings/:id/generate-audio', async (req, res) => {
         res.status(500).json({ error: "Audio generation failed", details: err.message });
     }
 });
+
+// Manage Readings
+router.get('/readings', async (req, res) => {
+    const hsk = req.query.hsk || 1;
+    const readings = await Reading.find({ hskLevel: hsk }).sort('order');
+    res.render('readings', { readings, currentHsk: hsk });
+});
+
+router.post('/readings/add', readingController.createReading);
+
+router.post('/readings/delete/:id', async (req, res) => {
+    const r = await Reading.findByIdAndDelete(req.params.id);
+    res.redirect(`/admin/readings?hsk=${r ? r.hskLevel : 1}`);
+});
+
+router.post('/readings/analyze', readingController.analyzeText);
 
 module.exports = router;
