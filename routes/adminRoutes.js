@@ -283,15 +283,62 @@ router.get('/hsk-exams/:id/details', async (req, res) => {
     res.render('hsk_exam_details', { exam });
 });
 
-router.post('/hsk-exams/:id/update-content', async (req, res) => {
-    try {
-        const { sectionsJson } = req.body;
-        const sections = JSON.parse(sectionsJson);
-        await HskExam.findByIdAndUpdate(req.params.id, { sections });
-        res.redirect(`/admin/hsk-exams/${req.params.id}/details`);
-    } catch (err) {
-        res.status(400).send("Invalid JSON format: " + err.message);
-    }
+router.post('/hsk-exams/:id/section/add', async (req, res) => {
+    const { name, audioUrl } = req.body;
+    await HskExam.findByIdAndUpdate(req.params.id, {
+        $push: { sections: { name, audioUrl, parts: [] } }
+    });
+    res.redirect(`/admin/hsk-exams/${req.params.id}/details`);
+});
+
+router.post('/hsk-exams/:id/section/delete/:sIndex', async (req, res) => {
+    const exam = await HskExam.findById(req.params.id);
+    exam.sections.splice(req.params.sIndex, 1);
+    await exam.save();
+    res.redirect(`/admin/hsk-exams/${req.params.id}/details`);
+});
+
+router.post('/hsk-exams/:id/section/:sIndex/part/add', async (req, res) => {
+    const { partNumber, instruction } = req.body;
+    const exam = await HskExam.findById(req.params.id);
+    exam.sections[req.params.sIndex].parts.push({ partNumber, instruction, questions: [] });
+    await exam.save();
+    res.redirect(`/admin/hsk-exams/${req.params.id}/details`);
+});
+
+router.post('/hsk-exams/:id/section/:sIndex/part/delete/:pIndex', async (req, res) => {
+    const exam = await HskExam.findById(req.params.id);
+    exam.sections[req.params.sIndex].parts.splice(req.params.pIndex, 1);
+    await exam.save();
+    res.redirect(`/admin/hsk-exams/${req.params.id}/details`);
+});
+
+router.post('/hsk-exams/:id/section/:sIndex/part/:pIndex/question/add', async (req, res) => {
+    const { type, text, image, imagesCsv, optionsCsv, audioStart, audioEnd, correctAnswer, explanation } = req.body;
+    const exam = await HskExam.findById(req.params.id);
+
+    const question = {
+        type,
+        text,
+        image,
+        explanation,
+        correctAnswer,
+        audioTimestamp: { start: audioStart, end: audioEnd }
+    };
+
+    if (imagesCsv) question.images = imagesCsv.split(',').map(i => i.trim());
+    if (optionsCsv) question.options = optionsCsv.split(',').map(o => o.trim());
+
+    exam.sections[req.params.sIndex].parts[req.params.pIndex].questions.push(question);
+    await exam.save();
+    res.redirect(`/admin/hsk-exams/${req.params.id}/details`);
+});
+
+router.post('/hsk-exams/:id/section/:sIndex/part/:pIndex/question/delete/:qIndex', async (req, res) => {
+    const exam = await HskExam.findById(req.params.id);
+    exam.sections[req.params.sIndex].parts[req.params.pIndex].questions.splice(req.params.qIndex, 1);
+    await exam.save();
+    res.redirect(`/admin/hsk-exams/${req.params.id}/details`);
 });
 
 module.exports = router;

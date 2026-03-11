@@ -1,76 +1,255 @@
 <div class="header">
-    <h2>Manage Content: <%= exam.title %>
+    <h2>Quản lý Đề thi: <%= exam.title %>
     </h2>
-    <a href="/admin/hsk-exams?hsk=<%= exam.hskLevel %>" class="btn btn-outline"
-        style="background: white; color: var(--primary); border: 1px solid var(--primary);">Back to List</a>
-</div>
-
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h3>Exam Data (JSON Format)</h3>
-        <span class="badge badge-xp">Level HSK <%= exam.hskLevel %></span>
+    <div style="display: flex; gap: 10px;">
+        <button onclick="document.getElementById('modalAddSection').style.display='block'" class="btn"
+            style="background: var(--secondary);">+ Thêm Phần thi (Section)</button>
+        <a href="/admin/hsk-exams?hsk=<%= exam.hskLevel %>" class="btn btn-outline"
+            style="background: white; color: var(--primary); border: 1px solid var(--primary);">Quay lại danh sách</a>
     </div>
-
-    <p style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">
-        💡 <b>Mẹo:</b> Một đề thi HSK rất dài (40-60 câu). Hãy sử dụng cấu trúc JSON để cập nhật hàng loạt nội dung cho
-        đề thi này.
-    </p>
-
-    <form action="/admin/hsk-exams/<%= exam._id %>/update-content" method="POST">
-        <textarea name="sectionsJson" id="sectionsJson"
-            style="width: 100%; min-height: 500px; font-family: monospace; padding: 1rem; border: 1px solid #DDD; border-radius: 8px; background: #fdfdfd;"><%= JSON.stringify(exam.sections, null, 2) %></textarea>
-
-        <div style="margin-top: 1.5rem; display: flex; gap: 10px;">
-            <button type="submit" class="btn">💾 Save All Content</button>
-            <button type="button" id="btnTemplate" class="btn" style="background: #10B981;">📋 Load HSK
-                Template</button>
-        </div>
-    </form>
 </div>
 
-<script>
-    document.getElementById('btnTemplate').addEventListener('click', () => {
-        const hsk1Template = [
-            {
-                "name": "Listening Section",
-                "audioUrl": "https://example.com/audio/hsk1_listening.mp3",
-                "parts": [
-                    {
-                        "partNumber": 1,
-                        "instruction": "Nghe hiểu: Chọn Đúng/Sai dựa trên ảnh",
-                        "questions": [
-                            {
-                                "type": "true_false_image",
-                                "image": "https://example.com/img1.jpg",
-                                "audioTimestamp": { "start": 0, "end": 10 },
-                                "correctAnswer": "true",
-                                "explanation": "Trong audio nói là 'Đi làm' khớp với ảnh."
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "name": "Reading Section",
-                "parts": [
-                    {
-                        "partNumber": 1,
-                        "instruction": "Đọc hiểu: Chọn ảnh tương ứng với từ",
-                        "questions": [
-                            {
-                                "type": "matching_image",
-                                "text": "喝水",
-                                "images": ["https://img_a.jpg", "https://img_drinking.jpg"],
-                                "correctAnswer": "B"
-                            }
-                        ]
-                    }
-                ]
-            }
-        ];
+<!-- DANH SÁCH CÁC PHẦN THI -->
+<% if (exam.sections && exam.sections.length> 0) { %>
+    <% exam.sections.forEach((section, sIndex)=> { %>
+        <div class="card" style="margin-bottom: 2rem; border-left: 5px solid var(--primary);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="color: var(--primary); font-size: 1.2rem;">Phần <%= sIndex + 1 %>: <%= section.name %>
+                </h3>
+                <div>
+                    <button onclick="openPartModal('<%= sIndex %>')" class="btn"
+                        style="font-size: 0.75rem; background: #8B5CF6;">+ Thêm Đoạn (Part)</button>
+                    <form action="/admin/hsk-exams/<%= exam._id %>/section/delete/<%= sIndex %>" method="POST"
+                        style="display:inline;">
+                        <button type="submit"
+                            style="color: #EF4444; background: none; border: none; cursor: pointer; font-size: 0.75rem;">Xóa
+                            Phần</button>
+                    </form>
+                </div>
+            </div>
+            <% if (section.audioUrl) { %>
+                <p style="font-size: 0.8rem; color: #666;">🎧 Audio: <a href="<%= section.audioUrl %>" target="_blank">
+                        <%= section.audioUrl %>
+                    </a></p>
+                <% } %>
 
-        if (confirm("Bạn có muốn ghi đè nội dung hiện tại bằng Template mẫu không?")) {
-            document.getElementById('sectionsJson').value = JSON.stringify(hsk1Template, null, 2);
-        }
-    });
-</script>
+                    <!-- DANH SÁCH PART TRONG SECTION -->
+                    <div style="margin-top: 1rem; padding-left: 1rem;">
+                        <% section.parts.forEach((part, pIndex)=> { %>
+                            <div style="background: #F3F4F6; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <h4 style="margin: 0;">Đoạn <%= part.partNumber %>: <%= part.instruction %>
+                                    </h4>
+                                    <div>
+                                        <button onclick="openQuestionModal('<%= sIndex %>', '<%= pIndex %>')"
+                                            class="btn" style="font-size: 0.7rem;">+ Thêm Câu hỏi</button>
+                                        <form
+                                            action="/admin/hsk-exams/<%= exam._id %>/section/<%= sIndex %>/part/delete/<%= pIndex %>"
+                                            method="POST" style="display:inline;">
+                                            <button type="submit"
+                                                style="color: #EF4444; background: none; border: none; cursor: pointer; font-size: 0.7rem; margin-left: 10px;">Xóa
+                                                Đoạn</button>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                <!-- DANH SÁCH CÂU HỎI TRONG PART -->
+                                <div style="margin-top: 1rem; display: grid; gap: 10px;">
+                                    <% part.questions.forEach((q, qIndex)=> { %>
+                                        <div
+                                            style="background: white; padding: 0.75rem; border-radius: 6px; border: 1px solid #DDD; display: flex; justify-content: space-between; align-items: center;">
+                                            <div>
+                                                <span class="badge badge-xp" style="font-size: 0.6rem;">
+                                                    <%= q.type %>
+                                                </span>
+                                                <span style="font-size: 0.9rem; margin-left:10px;">
+                                                    <%= q.text || (q.image ? 'Câu hỏi kèm ảnh' : 'Câu hỏi #' +
+                                                        (qIndex+1)) %>
+                                                </span>
+                                            </div>
+                                            <form
+                                                action="/admin/hsk-exams/<%= exam._id %>/section/<%= sIndex %>/part/<%= pIndex %>/question/delete/<%= qIndex %>"
+                                                method="POST">
+                                                <button type="submit"
+                                                    style="color: #EF4444; background: none; border: none; cursor: pointer;">✕</button>
+                                            </form>
+                                        </div>
+                                        <% }) %>
+                                </div>
+                            </div>
+                            <% }) %>
+                    </div>
+        </div>
+        <% }) %>
+            <% } else { %>
+                <div class="card" style="text-align: center; padding: 3rem;">
+                    <p>Chưa có nội dung nào. Hãy thêm Phần thi mới (Nghe, Đọc, Viết) để bắt đầu!</p>
+                </div>
+                <% } %>
+
+                    <!-- MODAL THÊM SECTION -->
+                    <div id="modalAddSection" class="modal"
+                        style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; background: rgba(0,0,0,0.5);">
+                        <div class="card" style="width: 500px; margin: 100px auto; position: relative;">
+                            <h3>Thêm Phần thi mới (Section)</h3>
+                            <form action="/admin/hsk-exams/<%= exam._id %>/section/add" method="POST"
+                                style="display: grid; gap: 1rem; margin-top: 1rem;">
+                                <input type="text" name="name" placeholder="Tên phần (VD: Nghe hiểu, Đọc hiểu)" required
+                                    style="padding: 0.5rem; border: 1px solid #DDD;">
+                                <input type="text" name="audioUrl" placeholder="Link Audio tổng cho phần này (Nếu có)"
+                                    style="padding: 0.5rem; border: 1px solid #DDD;">
+                                <div style="display: flex; gap: 10px;">
+                                    <button type="submit" class="btn">Thêm</button>
+                                    <button type="button"
+                                        onclick="document.getElementById('modalAddSection').style.display='none'"
+                                        class="btn" style="background: #9CA3AF;">Hủy</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- MODAL THÊM PART -->
+                    <div id="modalAddPart" class="modal"
+                        style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; background: rgba(0,0,0,0.5);">
+                        <div class="card" style="width: 500px; margin: 100px auto; position: relative;">
+                            <h3>Thêm Đoạn mới (Part)</h3>
+                            <form id="formAddPart" action="" method="POST"
+                                style="display: grid; gap: 1rem; margin-top: 1rem;">
+                                <input type="number" name="partNumber" placeholder="Thứ tự đoạn (VD: 1, 2, 3)" required
+                                    style="padding: 0.5rem; border: 1px solid #DDD;">
+                                <textarea name="instruction" placeholder="Hướng dẫn làm bài cho đoạn này" required
+                                    style="padding: 0.5rem; border: 1px solid #DDD;"></textarea>
+                                <div style="display: flex; gap: 10px;">
+                                    <button type="submit" class="btn">Thêm</button>
+                                    <button type="button"
+                                        onclick="document.getElementById('modalAddPart').style.display='none'"
+                                        class="btn" style="background: #9CA3AF;">Hủy</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- MODAL THÊM CÂU HỎI (QUAN TRỌNG NHẤT) -->
+                    <div id="modalAddQuestion" class="modal"
+                        style="display:none; position:fixed; z-index:101; left:0; top:0; width:100%; height:100%; background: rgba(0,0,0,0.5); overflow-y: auto;">
+                        <div class="card" style="width: 700px; margin: 50px auto; position: relative;">
+                            <h3>Thêm Câu hỏi mới</h3>
+                            <form id="formAddQuestion" action="" method="POST"
+                                style="display: grid; gap: 1rem; margin-top: 1rem;">
+
+                                <label>Loại câu hỏi (Type):</label>
+                                <select name="type" id="qTypeSelect" required
+                                    style="padding: 0.5rem; border: 1px solid #DDD;" onchange="toggleFields()">
+                                    <option value="true_false_image">Đúng / Sai kèm 1 ảnh (Dùng cho HSK Nghe Part 1)
+                                    </option>
+                                    <option value="image_selection">Chọn 1 trong 3 ảnh (Dùng cho HSK Nghe Part 2)
+                                    </option>
+                                    <option value="multiple_choice">Trắc nghiệm chữ (Chọn A, B, C)</option>
+                                    <option value="matching_image">Nối Câu văn với Ảnh (Dùng cho HSK Đọc Part 1)
+                                    </option>
+                                    <option value="fill_blank">Điền từ vào chỗ trống</option>
+                                    <option value="reorder">Sắp xếp câu</option>
+                                </select>
+
+                                <div id="fieldText" class="q-field">
+                                    <label>Nội dung câu hỏi (Văn bản):</label>
+                                    <input type="text" name="text"
+                                        style="width:100%; padding: 0.5rem; border: 1px solid #DDD;">
+                                </div>
+
+                                <div id="fieldImage" class="q-field">
+                                    <label>Link ảnh (Nếu chỉ có 1 ảnh):</label>
+                                    <input type="text" name="image"
+                                        style="width:100%; padding: 0.5rem; border: 1px solid #DDD;">
+                                </div>
+
+                                <div id="fieldImages" class="q-field">
+                                    <label>Danh sách link ảnh (Cách nhau bằng dấu phẩy):</label>
+                                    <textarea name="imagesCsv"
+                                        style="width:100%; padding: 0.5rem; border: 1px solid #DDD;"
+                                        placeholder="img1.jpg, img2.jpg, img3.jpg"></textarea>
+                                </div>
+
+                                <div id="fieldOptions" class="q-field">
+                                    <label>Danh sách đáp án A, B, C... (Cách nhau bằng dấu phẩy):</label>
+                                    <input type="text" name="optionsCsv"
+                                        style="width:100%; padding: 0.5rem; border: 1px solid #DDD;"
+                                        placeholder="Đáp án A, Đáp án B, Đáp án C">
+                                </div>
+
+                                <div id="fieldAudio" class="q-field"
+                                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                    <div>
+                                        <label>Bắt đầu (giây):</label>
+                                        <input type="number" name="audioStart" step="0.1" value="0"
+                                            style="width:100%; padding: 0.5rem; border: 1px solid #DDD;">
+                                    </div>
+                                    <div>
+                                        <label>Kết thúc (giây):</label>
+                                        <input type="number" name="audioEnd" step="0.1" value="0"
+                                            style="width:100%; padding: 0.5rem; border: 1px solid #DDD;">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label>Đáp án đúng:</label>
+                                    <input type="text" name="correctAnswer" required
+                                        style="width:100%; padding: 0.5rem; border: 1px solid #DDD;"
+                                        placeholder="VD: true, A, hoặc tên từ đúng">
+                                </div>
+
+                                <div>
+                                    <label>Giải thích (Gợi ý):</label>
+                                    <textarea name="explanation"
+                                        style="width:100%; padding: 0.5rem; border: 1px solid #DDD;"></textarea>
+                                </div>
+
+                                <div style="display: flex; gap: 10px;">
+                                    <button type="submit" class="btn">Lưu Câu hỏi</button>
+                                    <button type="button"
+                                        onclick="document.getElementById('modalAddQuestion').style.display='none'"
+                                        class="btn" style="background: #9CA3AF;">Hủy</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <script>
+                        function openPartModal(sIndex) {
+                            document.getElementById('formAddPart').action = `/admin/hsk-exams/<%= exam._id %>/section/${sIndex}/part/add`;
+                            document.getElementById('modalAddPart').style.display = 'block';
+                        }
+
+                        function openQuestionModal(sIndex, pIndex) {
+                            document.getElementById('formAddQuestion').action = `/admin/hsk-exams/<%= exam._id %>/section/${sIndex}/part/${pIndex}/question/add`;
+                            document.getElementById('modalAddQuestion').style.display = 'block';
+                            toggleFields(); // Reset fields
+                        }
+
+                        function toggleFields() {
+                            const type = document.getElementById('qTypeSelect').value;
+                            const allFields = document.querySelectorAll('.q-field');
+                            allFields.forEach(f => f.style.display = 'none');
+
+                            // Logic hiển thị theo Type
+                            if (type === 'true_false_image') {
+                                document.getElementById('fieldImage').style.display = 'block';
+                                document.getElementById('fieldAudio').style.display = 'grid';
+                            } else if (type === 'image_selection') {
+                                document.getElementById('fieldImages').style.display = 'block';
+                                document.getElementById('fieldAudio').style.display = 'grid';
+                            } else if (type === 'multiple_choice') {
+                                document.getElementById('fieldText').style.display = 'block';
+                                document.getElementById('fieldOptions').style.display = 'block';
+                                document.getElementById('fieldAudio').style.display = 'grid';
+                            } else if (type === 'matching_image') {
+                                document.getElementById('fieldText').style.display = 'block';
+                                document.getElementById('fieldImages').style.display = 'block';
+                            } else if (type === 'fill_blank') {
+                                document.getElementById('fieldText').style.display = 'block';
+                                document.getElementById('fieldOptions').style.display = 'block';
+                            } else if (type === 'reorder') {
+                                document.getElementById('fieldText').style.display = 'block';
+                            }
+                        }
+                    </script>
