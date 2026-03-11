@@ -49,15 +49,27 @@ exports.updateProgress = async (req, res) => {
         // Update XP
         user.xp += xpGained;
 
-        // Update Streak
+        // Update Streak (Calendar Day Logic)
         const now = new Date();
-        const lastActive = new Date(user.lastActive);
-        const diffDays = Math.floor((now - lastActive) / (1000 * 60 * 60 * 24));
 
-        if (diffDays === 1) {
-            user.streak += 1;
-        } else if (diffDays > 1) {
+        if (!user.lastActive) {
             user.streak = 1;
+        } else {
+            const lastActive = new Date(user.lastActive);
+
+            // Normalize both dates to UTC midnight to compare calendar days
+            const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+            const lastActiveUTC = Date.UTC(lastActive.getUTCFullYear(), lastActive.getUTCMonth(), lastActive.getUTCDate());
+
+            // Calculate difference in days
+            const diffDays = Math.floor((todayUTC - lastActiveUTC) / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 1) {
+                user.streak += 1; // Học liên tiếp ngày tiếp theo
+            } else if (diffDays > 1) {
+                user.streak = 1; // Bị đứt chuỗi, bắt đầu lại
+            }
+            // diffDays === 0: Học nhiều lần trong cùng 1 ngày, giữ nguyên streak
         }
 
         user.lastActive = now;
