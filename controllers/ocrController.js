@@ -119,7 +119,11 @@ const performOCROcrSpace = async (imagePath) => {
         console.log('Target Image Path:', imagePath);
         
         const formData = new FormData();
-        formData.append('file', fs.createReadStream(imagePath));
+        if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+            formData.append('url', imagePath);
+        } else {
+            formData.append('file', fs.createReadStream(imagePath));
+        }
         formData.append('apikey', process.env.OCR_SPACE_API_KEY || 'helloworld'); // 'helloworld' is a public test key, but rate limited
         formData.append('language', 'chs'); // chs = Simplified Chinese
         formData.append('isOverlayRequired', 'false');
