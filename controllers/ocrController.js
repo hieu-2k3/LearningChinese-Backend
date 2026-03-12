@@ -19,10 +19,23 @@ hanzi.start();
 let visionClient;
 const getVisionClient = () => {
     if (!visionClient) {
-        console.log('Initializing Vision Client with:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
-        visionClient = new ImageAnnotatorClient({
-            keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
-        });
+        const credsContent = process.env.GOOGLE_CREDS_JSON;
+        
+        if (credsContent) {
+            console.log('Initializing Vision Client using GOOGLE_CREDS_JSON environment variable...');
+            try {
+                const credentials = JSON.parse(credsContent);
+                visionClient = new ImageAnnotatorClient({ credentials });
+            } catch (err) {
+                console.error('Failed to parse GOOGLE_CREDS_JSON:', err.message);
+                throw new Error('Cấu hình GOOGLE_CREDS_JSON không hợp lệ.');
+            }
+        } else {
+            console.log('Initializing Vision Client using key file:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
+            visionClient = new ImageAnnotatorClient({
+                keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
+            });
+        }
     }
     return visionClient;
 };
