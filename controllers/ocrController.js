@@ -12,8 +12,10 @@ segment.useDefault();
 // Initialize hanzi
 hanzi.start();
 
-// Initialize Google Vision Client
-const visionClient = new ImageAnnotatorClient();
+// Initialize Google Vision Client with explicit key path
+const visionClient = new ImageAnnotatorClient({
+    keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
+});
 
 /**
  * Real OCR function using Google Cloud Vision
