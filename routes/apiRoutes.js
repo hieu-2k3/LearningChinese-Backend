@@ -4,6 +4,8 @@ const contentController = require('../controllers/contentController');
 const pinyinController = require('../controllers/pinyinController');
 const readingController = require('../controllers/readingController');
 const hskController = require('../controllers/hskController');
+const ocrController = require('../controllers/ocrController');
+const { upload } = require('../utils/storage');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();
@@ -40,5 +42,9 @@ router.get('/hsk/dashboard/:level', hskController.getHskDashboard);
 router.get('/hsk/exams/:id', hskController.getExamById);
 router.post('/hsk/submit', hskController.submitExamResult);
 router.get('/hsk/history', hskController.getExamHistory);
+
+// OCR Routes
+router.post('/ocr/scan', upload.single('image'), ocrController.scanImage);
+router.get('/ocr/detail/:word', ocrController.getWordDetail);
 
 module.exports = router;
