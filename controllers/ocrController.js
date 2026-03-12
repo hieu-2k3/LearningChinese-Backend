@@ -3,6 +3,8 @@ const hanzi = require('hanzi');
 const { pinyin } = require('pinyin');
 const { Word } = require('../models/Content');
 
+const { ImageAnnotatorClient } = require('@google-cloud/vision');
+
 // Initialize segment
 const segment = new Segment();
 segment.useDefault();
@@ -10,15 +12,22 @@ segment.useDefault();
 // Initialize hanzi
 hanzi.start();
 
+// Initialize Google Vision Client
+const visionClient = new ImageAnnotatorClient();
+
 /**
- * MOCK OCR function for demonstration
- * In reality, you would use Google Vision, Baidu OCR, or Tesseract.js
+ * Real OCR function using Google Cloud Vision
  */
 const performOCR = async (imagePath) => {
-    // This is a placeholder. 
-    // In production, replace with: const result = await visionClient.textDetection(imagePath);
-    console.log('Performing OCR on:', imagePath);
-    return "今天天气很好，我想去公园玩。"; // Mocked result
+    try {
+        console.log('Performing Real OCR on:', imagePath);
+        const [result] = await visionClient.textDetection(imagePath);
+        const fullText = result.fullTextAnnotation ? result.fullTextAnnotation.text : '';
+        return fullText.replace(/\r?\n|\r/g, " "); // Clean up newlines for better segmentation
+    } catch (error) {
+        console.error('Google Vision Error:', error);
+        throw new Error('Không thể nhận diện văn bản từ ảnh.');
+    }
 };
 
 exports.scanImage = async (req, res) => {
