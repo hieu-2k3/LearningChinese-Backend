@@ -1,6 +1,6 @@
 const Segment = require('segment');
 const hanzi = require('hanzi');
-const pinyin = require('pinyin');
+const { pinyin } = require('pinyin');
 const { Word } = require('../models/Content');
 
 // Initialize segment
@@ -43,12 +43,12 @@ exports.scanImage = async (req, res) => {
             
             // Get Pinyin from 'pinyin' library
             const py = pinyin(text, {
-                style: pinyin.STYLE_TONE,
+                style: 'tone',
             }).map(item => item[0]).join(' ');
 
             // Get Basic Meaning from 'hanzi' library
             const hanziData = hanzi.definitionLookup(text);
-            const basicMeaning = hanziData ? hanziData[0].definition : 'N/A';
+            const basicMeaning = (hanziData && hanziData.length > 0) ? hanziData[0].definition : 'N/A';
 
             // Optional: Search in our app's own database for advanced data (HSK level, audio, etc.)
             const dbWord = await Word.findOne({ hanzi: text });
@@ -94,7 +94,7 @@ exports.getWordDetail = async (req, res) => {
             status: 'success',
             data: {
                 word: word,
-                pinyin: pinyin(word, { style: pinyin.STYLE_TONE }).map(i => i[0]).join(' '),
+                pinyin: pinyin(word, { style: 'tone' }).map(i => i[0]).join(' '),
                 definition: definition,
                 decomposition: decomposition,
                 examples: examples ? examples.slice(0, 3) : [],
