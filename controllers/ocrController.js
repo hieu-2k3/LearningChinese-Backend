@@ -2,6 +2,7 @@ require('dotenv').config();
 const Segment = require('segment');
 const hanzi = require('hanzi');
 const { pinyin } = require('pinyin');
+const translatte = require('translatte');
 const { Word } = require('../models/Content');
 
 console.log('DEBUG: GOOGLE_APPLICATION_CREDENTIALS =', process.env.GOOGLE_APPLICATION_CREDENTIALS);
@@ -147,10 +148,26 @@ exports.scanImage = async (req, res) => {
             };
         }));
 
+        // Create full pinyin for the entire paragraph
+        const fullPinyinArray = pinyin(rawText, { style: 'tone' });
+        const fullPinyin = fullPinyinArray.map(item => item[0]).join(' ');
+
+        // Translate the full text to Vietnamese
+        let fullMeaning = "Đang cập nhật...";
+        try {
+            const translation = await translatte(rawText, { to: 'vi' });
+            fullMeaning = translation.text;
+        } catch (transErr) {
+            console.error('Translation Error:', transErr.message);
+            fullMeaning = "Không thể dịch tự động do lỗi kết nối (API giới hạn).";
+        }
+
         res.status(200).json({
             status: 'success',
             data: {
                 rawText: rawText,
+                fullPinyin: fullPinyin,
+                fullMeaning: fullMeaning,
                 words: processedWords,
                 imageUrl: req.file.path // If using Cloudinary/Multer
             }
