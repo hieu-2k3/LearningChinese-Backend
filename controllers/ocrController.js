@@ -20,13 +20,30 @@ const visionClient = new ImageAnnotatorClient();
  */
 const performOCR = async (imagePath) => {
     try {
-        console.log('Performing Real OCR on:', imagePath);
+        console.log('--- Starting OCR Process ---');
+        console.log('Target Image Path:', imagePath);
+        
         const [result] = await visionClient.textDetection(imagePath);
+        
+        if (!result) {
+            console.error('OCR Result is empty or undefined');
+            throw new Error('Google Vision không trả về kết quả.');
+        }
+
         const fullText = result.fullTextAnnotation ? result.fullTextAnnotation.text : '';
-        return fullText.replace(/\r?\n|\r/g, " "); // Clean up newlines for better segmentation
+        console.log('Recognized Text Length:', fullText.length);
+        
+        if (fullText.length === 0) {
+            console.warn('OCR detected zero characters.');
+        }
+
+        return fullText.replace(/\r?\n|\r/g, " ");
     } catch (error) {
-        console.error('Google Vision Error:', error);
-        throw new Error('Không thể nhận diện văn bản từ ảnh.');
+        console.error('--- Google Vision Detailed Error ---');
+        console.error('Error Code:', error.code);
+        console.error('Error Message:', error.message);
+        console.error('------------------------------------');
+        throw new Error(`Lỗi nhận diện: ${error.message}`);
     }
 };
 
