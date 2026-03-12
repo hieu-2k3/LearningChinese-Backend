@@ -1,7 +1,10 @@
+require('dotenv').config();
 const Segment = require('segment');
 const hanzi = require('hanzi');
 const { pinyin } = require('pinyin');
 const { Word } = require('../models/Content');
+
+console.log('DEBUG: GOOGLE_APPLICATION_CREDENTIALS =', process.env.GOOGLE_APPLICATION_CREDENTIALS);
 
 const { ImageAnnotatorClient } = require('@google-cloud/vision');
 
@@ -12,10 +15,17 @@ segment.useDefault();
 // Initialize hanzi
 hanzi.start();
 
-// Initialize Google Vision Client with explicit key path
-const visionClient = new ImageAnnotatorClient({
-    keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
-});
+// Initialize Google Vision Client lazily
+let visionClient;
+const getVisionClient = () => {
+    if (!visionClient) {
+        console.log('Initializing Vision Client with:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
+        visionClient = new ImageAnnotatorClient({
+            keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
+        });
+    }
+    return visionClient;
+};
 
 /**
  * Real OCR function using Google Cloud Vision
@@ -25,7 +35,8 @@ const performOCR = async (imagePath) => {
         console.log('--- Starting OCR Process ---');
         console.log('Target Image Path:', imagePath);
         
-        const [result] = await visionClient.textDetection(imagePath);
+        const client = getVisionClient();
+        const [result] = await client.textDetection(imagePath);
         
         if (!result) {
             console.error('OCR Result is empty or undefined');
