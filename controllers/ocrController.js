@@ -7,6 +7,7 @@ const { Word } = require('../models/Content');
 console.log('DEBUG: GOOGLE_APPLICATION_CREDENTIALS =', process.env.GOOGLE_APPLICATION_CREDENTIALS);
 
 const { ImageAnnotatorClient } = require('@google-cloud/vision');
+const Tesseract = require('tesseract.js');
 
 // Initialize segment
 const segment = new Segment();
@@ -69,7 +70,39 @@ const performOCR = async (imagePath) => {
         console.error('Error Code:', error.code);
         console.error('Error Message:', error.message);
         console.error('------------------------------------');
-        throw new Error(`Lỗi nhận diện: ${error.message}`);
+        throw new Error(`Lỗi nhận diện Google Vision: ${error.message}`);
+    }
+};
+
+/**
+ * Alternative OCR function using Tesseract.js (Free, no cloud billing)
+ */
+const performOCRTesseract = async (imagePath) => {
+    try {
+        console.log('--- Starting Tesseract OCR Process ---');
+        console.log('Target Image Path:', imagePath);
+        
+        // Use 'chi_sim' for Simplified Chinese. 'chi_tra' for Traditional.
+        const result = await Tesseract.recognize(
+            imagePath,
+            'chi_sim',
+            { logger: m => console.log(`Tesseract Progress: ${m.status} ${Math.round(m.progress * 100)}%`) }
+        );
+        
+        const fullText = result.data.text || '';
+        console.log('Recognized Text Length:', fullText.length);
+        
+        if (fullText.length === 0) {
+            console.warn('OCR detected zero characters.');
+        }
+
+        // Clean up newlines and whitespaces
+        return fullText.replace(/\s+/g, "");
+    } catch (error) {
+        console.error('--- Tesseract OCR Detailed Error ---');
+        console.error('Error Message:', error.message);
+        console.error('------------------------------------');
+        throw new Error(`Lỗi nhận diện Tesseract: ${error.message}`);
     }
 };
 
@@ -80,9 +113,8 @@ exports.scanImage = async (req, res) => {
         }
 
         // 1. Perform OCR (Text Recognition)
-        // Note: For now we use the mock function. 
-        // In a real app, you'd send req.file.path or req.file.buffer to the OCR service.
-        const rawText = await performOCR(req.file.path);
+        // Switch between performOCR (Google Vision) and performOCRTesseract (Tesseract.js)
+        const rawText = await performOCRTesseract(req.file.path);
 
         // 2. Word Segmentation (Tách câu thành các từ có nghĩa)
         const segmented = segment.doSegment(rawText, {
