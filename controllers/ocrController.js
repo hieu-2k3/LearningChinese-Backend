@@ -9,6 +9,9 @@ console.log('DEBUG: GOOGLE_APPLICATION_CREDENTIALS =', process.env.GOOGLE_APPLIC
 
 const { ImageAnnotatorClient } = require('@google-cloud/vision');
 const Tesseract = require('tesseract.js');
+const axios = require('axios');
+const FormData = require('form-data');
+const fs = require('fs');
 
 // Initialize segment
 const segment = new Segment();
@@ -107,6 +110,52 @@ const performOCRTesseract = async (imagePath) => {
     }
 };
 
+/**
+ * Alternative OCR function using OCR.Space API (Free, needs email registration)
+ */
+const performOCROcrSpace = async (imagePath) => {
+    try {
+        console.log('--- Starting OCR.Space OCR Process ---');
+        console.log('Target Image Path:', imagePath);
+        
+        const formData = new FormData();
+        formData.append('file', fs.createReadStream(imagePath));
+        formData.append('apikey', process.env.OCR_SPACE_API_KEY || 'helloworld'); // 'helloworld' is a public test key, but rate limited
+        formData.append('language', 'chs'); // chs = Simplified Chinese
+        formData.append('isOverlayRequired', 'false');
+
+        const response = await axios.post('https://api.ocr.space/parse/image', formData, {
+            headers: {
+                ...formData.getHeaders()
+            }
+        });
+
+        const data = response.data;
+        
+        if (data.IsErroredOnProcessing) {
+            throw new Error(data.ErrorMessage[0]);
+        }
+        
+        const fullText = data.ParsedResults && data.ParsedResults.length > 0 
+            ? data.ParsedResults[0].ParsedText 
+            : '';
+            
+        console.log('Recognized Text Length:', fullText.length);
+        
+        if (fullText.length === 0) {
+            console.warn('OCR detected zero characters.');
+        }
+
+        // Clean up newlines and whitespaces for better segmentation
+        return fullText.replace(/\r?\n|\r/g, "");
+    } catch (error) {
+        console.error('--- OCR.Space Detailed Error ---');
+        console.error('Error Message:', error.message);
+        console.error('------------------------------------');
+        throw new Error(`Lỗi nhận diện OCR.Space: ${error.message}`);
+    }
+};
+
 exports.scanImage = async (req, res) => {
     try {
         if (!req.file) {
@@ -114,8 +163,8 @@ exports.scanImage = async (req, res) => {
         }
 
         // 1. Perform OCR (Text Recognition)
-        // Switch between performOCR (Google Vision) and performOCRTesseract (Tesseract.js)
-        const rawText = await performOCRTesseract(req.file.path);
+        // Switch to OCR.Space API as default free alternative
+        const rawText = await performOCROcrSpace(req.file.path);
 
         // 2. Word Segmentation (Tách câu thành các từ có nghĩa)
         const segmented = segment.doSegment(rawText, {
