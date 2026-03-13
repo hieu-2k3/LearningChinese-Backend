@@ -1,6 +1,5 @@
 require('dotenv').config();
 const Segment = require('segment');
-const hanzi = require('hanzi');
 const { pinyin } = require('pinyin');
 const translatte = require('translatte');
 const { Word } = require('../models/Content');
@@ -13,12 +12,9 @@ const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
 
-// Initialize segment
+// Initialize segment (Dùng khoảng 115MB RAM, an toàn cho server 512MB)
 const segment = new Segment();
 segment.useDefault();
-
-// Initialize hanzi
-hanzi.start();
 
 // Initialize Google Vision Client lazily
 let visionClient;
@@ -184,19 +180,17 @@ exports.scanImage = async (req, res) => {
                 style: 'tone',
             }).map(item => item[0]).join(' ');
 
-            // Get Basic Meaning from 'hanzi' library
-            const hanziData = hanzi.definitionLookup(text);
-            const basicMeaning = (hanziData && hanziData.length > 0) ? hanziData[0].definition : 'N/A';
-
-            // Optional: Search in our app's own database for advanced data (HSK level, audio, etc.)
+            // Search in our app's own database for advanced data (HSK level, audio, etc.)
             const dbWord = await Word.findOne({ hanzi: text });
 
             return {
                 text: text,
                 pinyin: py,
-                meaning: basicMeaning,
+                // Đã huỷ hanzi vì vượt giới hạn RAM 512MB
+                // Nghĩa sẽ lấy từ DB, hoặc báo người dùng tra chi tiết
+                meaning: dbWord ? dbWord.meaning : 'Bấm để tra nghĩa chi tiết',
                 dbMeaning: dbWord ? dbWord.meaning : null,
-                audioUrl: dbWord ? dbWord.audioUrl : `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(text)}&type=2`,
+                audioUrl: dbWord && dbWord.audioUrl ? dbWord.audioUrl : `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(text)}&type=2`,
                 isLearned: !!dbWord
             };
         }));
@@ -236,27 +230,34 @@ exports.getWordDetail = async (req, res) => {
     try {
         const { word } = req.params;
         
-        // Lookup detailed info using hanzi library
-        const decomposition = hanzi.decompose(word);
-        const definition = hanzi.definitionLookup(word);
-        const examples = hanzi.getExamples(word);
-
         // Search in our Word model for HSK info and audio
         const dbWord = await Word.findOne({ hanzi: word });
+
+        // Dịch nghĩa Vietnamese sử dụng translatte thay vì thư viện hanzi (để giảm RAM)
+        let definitionText = dbWord ? dbWord.meaning : "Đang cập nhật...";
+        if (!dbWord) {
+            try {
+                const trans = await translatte(word, { to: 'vi' });
+                definitionText = trans.text;
+            } catch(e) {
+                console.error("Lỗi Google Translate:", e.message);
+            }
+        }
 
         res.status(200).json({
             status: 'success',
             data: {
                 word: word,
                 pinyin: pinyin(word, { style: 'tone' }).map(i => i[0]).join(' '),
-                definition: definition,
-                decomposition: decomposition,
-                examples: examples ? examples.slice(0, 3) : [],
-                audioUrl: dbWord ? dbWord.audioUrl : `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=2`,
-                hskLevel: dbWord ? dbWord.hskLevel : 'N/A'
+                definition: [ { definition: definitionText } ], // Format giả lập thư viện hanzi trả về
+                decomposition: { character: word, components1: [], components2: [] }, // Format giả lập
+                examples: [],
+                audioUrl: dbWord && dbWord.audioUrl ? dbWord.audioUrl : `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=2`,
+                hskLevel: dbWord && dbWord.hskLevel ? dbWord.hskLevel : 'N/A'
             }
         });
     } catch (err) {
         res.status(400).json({ status: 'fail', message: err.message });
     }
 };
+

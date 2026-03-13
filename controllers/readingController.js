@@ -1,20 +1,9 @@
-const { Reading } = require('../models/Content');
+const { Reading, Word } = require('../models/Content');
 const Segment = require('segment');
 const { pinyin } = require('pinyin');
-const hanzi = require('hanzi');
 
 const segment = new Segment();
 segment.useDefault();
-
-let isHanziStarted = false;
-
-// Khởi tạo thư viện từ điển khi cần
-const ensureHanziStarted = () => {
-    if (!isHanziStarted) {
-        hanzi.start();
-        isHanziStarted = true;
-    }
-};
 
 // ---------------------------
 // API DÀNH CHO CLIENT MAPP (iOS)
@@ -70,16 +59,14 @@ exports.analyzeText = async (req, res) => {
         const { text } = req.body;
         if (!text) return res.status(400).json({ status: 'fail', message: 'Vui lòng nhập văn bản!' });
 
-        ensureHanziStarted();
-
         // 1. Cắt từ thông minh bằng segment (Pure JS)
         const segments = segment.doSegment(text).map(s => s.w);
-        const analyzedChunks = [];
 
         // Kiểm tra ký tự là chữ Hán hay Dấu câu
         const isChineseChar = (str) => /[\u4e00-\u9fa5]/.test(str);
 
-        for (const word of segments) {
+        // Chạy Promise.all cho tất cả các từ và return trực tiếp để giữ đúng thứ tự
+        const analyzedChunks = await Promise.all(segments.map(async (word) => {
             let type = 'word';
             let pyStr = '';
             let meaningStr = '';
@@ -94,22 +81,21 @@ exports.analyzeText = async (req, res) => {
                 const pyArray = pinyin(word, { style: 'tone' });
                 pyStr = pyArray.map(item => item[0]).join('');
 
-                // Tra từ điển lấy nghĩa tiếng Việt (tạm dùng Anh do CSDL Hanzi mặc định là tiếng Anh, Admin có thể sửa)
-                const dictRes = hanzi.definitionLookup(word);
-                if (dictRes && dictRes.length > 0) {
-                    // Lấy nghĩa đầu tiên, chỉ lấy 2 mô tả đầu để ngắn gọn
-                    meaningStr = dictRes[0].definition.split('/').slice(0, 2).join(', ');
+                // Lấy nghĩa tiếng Việt từ Database (nếu có)
+                const dbWord = await Word.findOne({ hanzi: word }).lean();
+                if (dbWord) {
+                    meaningStr = dbWord.meaning;
                 }
             }
 
-            analyzedChunks.push({
+            return {
                 text: word,
                 pinyin: pyStr,
                 meaning: meaningStr,
                 type: type
-            });
-        }
-
+            };
+        }));
+        
         res.status(200).json({ status: 'success', data: { segments: analyzedChunks } });
     } catch (err) {
         res.status(400).json({ status: 'fail', message: err.message });
@@ -124,3 +110,4 @@ exports.createReading = async (req, res) => {
         res.status(400).json({ status: 'fail', message: err.message });
     }
 };
+
