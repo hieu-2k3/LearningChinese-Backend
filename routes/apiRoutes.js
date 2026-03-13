@@ -5,6 +5,7 @@ const pinyinController = require('../controllers/pinyinController');
 const readingController = require('../controllers/readingController');
 const hskController = require('../controllers/hskController');
 const ocrController = require('../controllers/ocrController');
+const ocrLightController = require('../controllers/ocrLightController');
 const { upload } = require('../utils/storage');
 const { protect } = require('../middleware/auth');
 
@@ -45,6 +46,7 @@ router.get('/hsk/history', hskController.getExamHistory);
 
 // OCR Routes
 router.post('/ocr/scan', upload.single('image'), ocrController.scanImage);
+router.post('/ocr/lookup', ocrLightController.lookupText);
 router.get('/ocr/detail/:word', ocrController.getWordDetail);
 
 module.exports = router;

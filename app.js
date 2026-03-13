@@ -27,9 +27,13 @@ app.set('layout', 'layout');
 app.use(express.static(path.join(__dirname, 'public')));
 
 // DB Connection
-mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('✅ MongoDB Connected'))
-    .catch(err => console.error('❌ DB Connection Error:', err));
+if (!process.env.MONGODB_URI) {
+    console.error('❌ FATAL: MONGODB_URI is not defined in environment variables!');
+} else {
+    mongoose.connect(process.env.MONGODB_URI)
+        .then(() => console.log('✅ MongoDB Connected'))
+        .catch(err => console.error('❌ DB Connection Error:', err));
+}
 
 // Routes
 app.use('/api/v1', apiRoutes);
