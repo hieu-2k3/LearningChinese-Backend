@@ -19,7 +19,7 @@ exports.lookupText = async (req, res) => {
                 text: token.text,
                 pinyin: py,
                 meaning: token.meaning || 'Bấm để tra nghĩa',
-                audioUrl: token.audioUrl || `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(token.text)}&tl=zh-CN&client=tw-ob`,
+                audioUrl: `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(token.text)}&tl=zh-CN&client=tw-ob`,
                 type: token.type === 'number' ? 'number' : 'chinese'
             };
         });
