@@ -129,11 +129,10 @@ exports.scanImage = async (req, res) => {
         }
         if (buffer) tokens.push({ type: 'chinese', value: buffer });
 
-        // Xử lý từng token
+        // 5. Xây dựng danh sách từ: chữ Hán được tra pinyin + nghĩa, số giữ nguyên
         const processedWords = [];
         for (const token of tokens) {
             if (token.type === 'number') {
-                // Số: không cần pinyin / nghĩa
                 processedWords.push({
                     text: token.value,
                     pinyin: '',
@@ -144,16 +143,16 @@ exports.scanImage = async (req, res) => {
                     type: 'number'
                 });
             } else {
-                // Chữ Hán: tách từ và tra nghĩa
                 const chunkSegmented = segment.doSegment(token.value, { stripPunctuation: true });
-                const chunkWords = await Promise.all(chunkSegmented.map(async (seg) => {
+                // Xử lý tuần tự (Sequential) thay vì Promise.all để tránh spike RAM
+                for (const seg of chunkSegmented) {
                     const text = seg.w;
-                    if (!isChineseChar(text)) return null; // bỏ nếu không phải chữ Hán
+                    if (!isChineseChar(text)) continue;
 
                     const py = pinyin(text, { style: 'tone' }).map(item => item[0]).join(' ');
                     const dbWord = await Word.findOne({ hanzi: text }).lean();
 
-                    return {
+                    processedWords.push({
                         text: text,
                         pinyin: py,
                         meaning: dbWord ? dbWord.meaning : 'Bấm để tra nghĩa chi tiết',
@@ -163,9 +162,8 @@ exports.scanImage = async (req, res) => {
                             : `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(text)}&type=2`,
                         isLearned: !!dbWord,
                         type: 'chinese'
-                    };
-                }));
-                processedWords.push(...chunkWords.filter(Boolean));
+                    });
+                }
             }
         }
 
