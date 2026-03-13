@@ -10,14 +10,19 @@ exports.getDictionaryHome = async (req, res) => {
         let wordOfTheDay = await Word.findOne({ isWordOfTheDay: true }).sort('-updatedAt');
         
         if (!wordOfTheDay) {
-            // Nếu chưa set, lấy ngẫu nhiên 1 từ
-            const count = await Word.countDocuments();
-            const random = Math.floor(Math.random() * count);
-            wordOfTheDay = await Word.findOne().skip(random);
+            // Nếu tuyệt đối không có từ nào, trả về dữ liệu rỗng thay vì crash
+            return res.status(200).json({
+                status: 'success',
+                data: {
+                    wordOfTheDay: { hanzi: '---', pinyin: '---', meaning: 'Chưa có từ vựng.', ancientRecord: 'Đang cập nhật...' },
+                    history: [],
+                    categories: []
+                }
+            });
         }
 
         // 2. Dấu chân lữ khách (Search History) - Lấy từ User profile
-        const history = req.user.searchHistory || [];
+        const history = (req.user && req.user.searchHistory) ? req.user.searchHistory : [];
 
         // 3. Chòm sao ngữ nghĩa (Categories)
         const categories = [
@@ -31,12 +36,12 @@ exports.getDictionaryHome = async (req, res) => {
             status: 'success',
             data: {
                 wordOfTheDay: {
-                    hanzi: wordOfTheDay.hanzi,
-                    pinyin: wordOfTheDay.pinyin,
-                    meaning: wordOfTheDay.meaning,
+                    hanzi: wordOfTheDay.hanzi || '---',
+                    pinyin: wordOfTheDay.pinyin || '---',
+                    meaning: wordOfTheDay.meaning || '---',
                     ancientRecord: wordOfTheDay.ancientRecord || "Trích lục từ điển tích cổ đang được cập nhật..."
                 },
-                history: history.slice(0, 10), // Trả về 10 từ gần nhất
+                history: [...history].slice(0, 10), // Safe spread
                 categories
             }
         });
