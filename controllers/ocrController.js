@@ -127,7 +127,8 @@ const performOCROcrSpace = async (imagePath) => {
         const response = await axios.post('https://api.ocr.space/parse/image', formData, {
             headers: {
                 ...formData.getHeaders()
-            }
+            },
+            timeout: 30000 // 30 giây timeout
         });
 
         const data = response.data;
@@ -169,7 +170,17 @@ exports.scanImage = async (req, res) => {
         }
 
         // 1. Perform OCR (Text Recognition)
-        const rawText = await performOCROcrSpace(req.file.path);
+        // Ưu tiên Google Cloud Vision (nhanh, chính xác), fallback sang OCR.Space
+        let rawText = '';
+        try {
+            console.log('Attempting OCR with Google Cloud Vision...');
+            rawText = await performOCR(req.file.path);
+            console.log('Google Vision OCR success.');
+        } catch (visionErr) {
+            console.warn('Google Vision failed, falling back to OCR.Space:', visionErr.message);
+            rawText = await performOCROcrSpace(req.file.path);
+            console.log('OCR.Space fallback success.');
+        }
 
         // 2. Lọc: Chỉ giữ lại chữ Hán + số, bỏ hết ký tự Latin, dấu câu, ký tự đặc biệt
         //    Regex: giữ ký tự CJK (\u4e00-\u9fff, mở rộng) và chữ số 0-9
@@ -259,10 +270,14 @@ exports.scanImage = async (req, res) => {
         const fullPinyinArray = pinyin(chineseOnly, { style: 'tone' });
         const fullPinyin = fullPinyinArray.map(item => item[0]).join(' ');
 
-        // 7. Dịch toàn bộ phần chữ Hán sang Tiếng Việt
+        // 7. Dịch toàn bộ phần chữ Hán sang Tiếng Việt (timeout 15 giây)
         let fullMeaning = 'Đang cập nhật...';
         try {
-            const translation = await translatte(chineseOnly, { to: 'vi' });
+            const transPromise = translatte(chineseOnly, { to: 'vi' });
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Translation timeout')), 15000)
+            );
+            const translation = await Promise.race([transPromise, timeoutPromise]);
             fullMeaning = translation.text;
         } catch (transErr) {
             console.error('Translation Error:', transErr.message);
