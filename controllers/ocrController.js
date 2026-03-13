@@ -8,7 +8,7 @@ const fs = require('fs');
 
 console.log('OCR Engine: OCR.Space API (free tier)');
 
-const segment = require('../utils/segment');
+const { segmentText } = require('../utils/wordSegmenter');
 
 /**
  * Alternative OCR function using OCR.Space API (Free, needs email registration)
@@ -108,28 +108,26 @@ exports.scanImage = async (req, res) => {
         if (numBuf) tokens.push({ type: 'num', val: numBuf });
 
         // 4. Xử lý tuần tự (Không dùng Promise.all để tránh spike RAM)
-        const words = [];
+        const wordsArr = [];
         let combinedPinyin = '';
         
         for (const token of tokens) {
             if (token.type === 'num') {
-                words.push({ text: token.val, pinyin: '', meaning: '', dbMeaning: null, audioUrl: null, isLearned: false, type: 'number' });
+                wordsArr.push({ text: token.val, pinyin: '', meaning: '', dbMeaning: null, audioUrl: null, isLearned: false, type: 'number' });
                 combinedPinyin += token.val + ' ';
             } else {
-                const segs = segment.doSegment(token.val, { stripPunctuation: true });
+                // Dùng wordSegmenter mới
+                const segs = await segmentText(token.val);
                 for (const s of segs) {
-                    const text = s.w;
-                    if (!isChineseChar(text)) continue;
-
+                    const text = s.text;
                     const py = pinyin(text, { style: 'tone' }).map(i => i[0]).join(' ');
-                    const db = await Word.findOne({ hanzi: text }).lean();
 
-                    words.push({
+                    wordsArr.push({
                         text, pinyin: py,
-                        meaning: db ? db.meaning : 'Bấm để xem nghĩa',
-                        dbMeaning: db ? db.meaning : null,
-                        audioUrl: db && db.audioUrl ? db.audioUrl : `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(text)}&type=2`,
-                        isLearned: !!db,
+                        meaning: s.meaning || 'Bấm để xem nghĩa',
+                        dbMeaning: s.meaning || null,
+                        audioUrl: s.audioUrl || `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(text)}&type=2`,
+                        isLearned: !!s.meaning,
                         type: 'chinese'
                     });
                     combinedPinyin += py + ' ';

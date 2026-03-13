@@ -1,6 +1,6 @@
 const { Lesson, Word, Listening } = require('../models/Content');
 const User = require('../models/User');
-const segment = require('../utils/segment');
+const { segmentText } = require('../utils/wordSegmenter');
 
 
 exports.getAllLessons = async (req, res) => {
@@ -161,7 +161,7 @@ exports.getLessonPractice = async (req, res) => {
             });
 
             // Generate Choice exercises for each word
-            lesson.vocabulary.forEach(v => {
+            for (const v of lesson.vocabulary) {
                 const distractions = lesson.vocabulary
                     .filter(item => item._id !== v._id)
                     .map(item => item.meaning)
@@ -176,7 +176,6 @@ exports.getLessonPractice = async (req, res) => {
                     explanation: `"${v.hanzi}" có nghĩa là "${v.meaning}"`
                 });
 
-                // SMART IDEA: Auto-generate Fill in the Blank from example sentence
                 if (v.example && v.example.includes(v.hanzi)) {
                     const blankSentence = v.example.replace(v.hanzi, ' ___ ');
                     const wordDistractions = lesson.vocabulary
@@ -194,46 +193,43 @@ exports.getLessonPractice = async (req, res) => {
                     });
                 }
 
-                // SMART IDEA: Auto-generate REORDER exercise from vocabulary example
                 if (v.example && v.example.length >= 2) {
-                    const words = segment.doSegment(v.example)
-                        .map(s => s.w)
-                        .filter(w => /[\u4e00-\u9fa5]/.test(w));
+                    const tokens = await segmentText(v.example);
+                    const wordsForReorder = tokens.map(s => s.text).filter(w => /[\u4e00-\u9fa5]/.test(w));
 
-                    if (words.length >= 2) {
+                    if (wordsForReorder.length >= 2) {
                         practiceSession.push({
                             type: 'reorder',
                             question: 'Sắp xếp các từ sau thành câu đúng:',
                             meaning: (v.meaning || "") + " (Ví dụ)",
-                            shuffledWords: [...words].sort(() => 0.5 - Math.random()),
-                            correctAnswer: words.join(''),
+                            shuffledWords: [...wordsForReorder].sort(() => 0.5 - Math.random()),
+                            correctAnswer: wordsForReorder.join(''),
                             explanation: `Câu đúng: ${v.example}`
                         });
                     }
                 }
-            });
+            }
         }
 
         // 3. Auto-generate REORDER from Grammar Points
         if (lesson.grammarPoints && lesson.grammarPoints.length > 0) {
-            lesson.grammarPoints.forEach(gp => {
-                gp.examples.forEach(ex => {
-                    const words = segment.doSegment(ex.hanzi)
-                        .map(s => s.w)
-                        .filter(w => /[\u4e00-\u9fa5]/.test(w));
+            for (const gp of lesson.grammarPoints) {
+                for (const ex of gp.examples) {
+                    const tokens = await segmentText(ex.hanzi);
+                    const wordsForReorder = tokens.map(s => s.text).filter(w => /[\u4e00-\u9fa5]/.test(w));
 
-                    if (words.length >= 2) {
+                    if (wordsForReorder.length >= 2) {
                         practiceSession.push({
                             type: 'reorder',
                             question: `Luyện tập cấu trúc: ${gp.title}`,
                             meaning: ex.meaning,
-                            shuffledWords: [...words].sort(() => 0.5 - Math.random()),
-                            correctAnswer: words.join(''),
+                            shuffledWords: [...wordsForReorder].sort(() => 0.5 - Math.random()),
+                            correctAnswer: wordsForReorder.join(''),
                             explanation: `Cấu trúc: ${gp.formula}`
                         });
                     }
-                });
-            });
+                }
+            }
         }
 
         // 4. EMERGENCY FALLBACKS: If any type is missing, create a simplified version from vocab

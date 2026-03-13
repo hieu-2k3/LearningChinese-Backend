@@ -1,5 +1,5 @@
 const { Reading, Word } = require('../models/Content');
-const segment = require('../utils/segment');
+const { segmentText } = require('../utils/wordSegmenter');
 const { pinyin } = require('pinyin');
 
 
@@ -57,8 +57,9 @@ exports.analyzeText = async (req, res) => {
         const { text } = req.body;
         if (!text) return res.status(400).json({ status: 'fail', message: 'Vui lòng nhập văn bản!' });
 
-        // 1. Cắt từ thông minh bằng segment (Pure JS)
-        const segments = segment.doSegment(text).map(s => s.w);
+        // 1. Cắt từ thông minh bằng DB (Tiết kiệm RAM)
+        const tokens = await segmentText(text);
+        const segments = tokens.map(t => t.text);
 
         // Kiểm tra ký tự là chữ Hán hay Dấu câu
         const isChineseChar = (str) => /[\u4e00-\u9fa5]/.test(str);
