@@ -1,35 +1,26 @@
-const { Word } = require('../models/Content');
+const { lookupText } = require('./ocrLightController');
+const { segmentText } = require('../utils/wordSegmenter');
 const { pinyin } = require('pinyin');
 const translatte = require('translatte');
 
-// API này cực nhẹ, không dùng thư viện Segment tốn RAM
 exports.lookupText = async (req, res) => {
     try {
         const { text } = req.body;
         if (!text) return res.status(400).json({ status: 'fail', message: 'Vui lòng cung cấp văn bản.' });
 
-        // Chỉ lọc lấy chữ Hán và số
-        const cleanText = text.replace(/[^\u4e00-\u9fff\u3400-\u4dbf\uF900-\uFAFF0-9 ]/g, '');
+        // Tách từ thông minh bằng DB (Gộp được "朋友", "学习" thay vì tách lẻ)
+        const tokens = await segmentText(text);
         
-        // Tách chữ Hán thành từng ký tự để tra cứu nhanh (không dùng Segment dictionary)
-        const characters = cleanText.split('');
-        
-        const words = await Promise.all(characters.map(async (char) => {
-            if (/[0-9 ]/.test(char)) {
-                return { text: char, pinyin: '', meaning: '', type: char === ' ' ? 'space' : 'number' };
-            }
-
-            const py = pinyin(char, { style: 'tone' }).map(i => i[0]).join(' ');
-            const dbWord = await Word.findOne({ hanzi: char }).select('meaning audioUrl').lean();
-
+        const words = tokens.map(token => {
+            const py = pinyin(token.text, { style: 'tone' }).map(i => i[0]).join(' ');
             return {
-                text: char,
+                text: token.text,
                 pinyin: py,
-                meaning: dbWord ? dbWord.meaning : '',
-                audioUrl: dbWord ? dbWord.audioUrl : `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(char)}&type=2`,
-                type: 'chinese'
+                meaning: token.meaning || 'Bấm để tra nghĩa',
+                audioUrl: token.audioUrl || `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(token.text)}&type=2`,
+                type: token.type === 'number' ? 'number' : 'chinese'
             };
-        }));
+        });
 
         // Dịch toàn đoạn (Timeout ngắn)
         let fullMeaning = '';
