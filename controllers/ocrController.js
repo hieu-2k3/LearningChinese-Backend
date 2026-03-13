@@ -3,108 +3,15 @@ const Segment = require('segment');
 const { pinyin } = require('pinyin');
 const translatte = require('translatte');
 const { Word } = require('../models/Content');
-
-console.log('DEBUG: GOOGLE_APPLICATION_CREDENTIALS =', process.env.GOOGLE_APPLICATION_CREDENTIALS);
-
-const { ImageAnnotatorClient } = require('@google-cloud/vision');
-const Tesseract = require('tesseract.js');
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
 
+console.log('OCR Engine: OCR.Space API (free tier)');
+
 // Initialize segment (Dùng khoảng 115MB RAM, an toàn cho server 512MB)
 const segment = new Segment();
 segment.useDefault();
-
-// Initialize Google Vision Client lazily
-let visionClient;
-const getVisionClient = () => {
-    if (!visionClient) {
-        const credsContent = process.env.GOOGLE_CREDS_JSON;
-        
-        if (credsContent) {
-            console.log('Initializing Vision Client using GOOGLE_CREDS_JSON environment variable...');
-            try {
-                const credentials = JSON.parse(credsContent);
-                visionClient = new ImageAnnotatorClient({ credentials });
-            } catch (err) {
-                console.error('Failed to parse GOOGLE_CREDS_JSON:', err.message);
-                throw new Error('Cấu hình GOOGLE_CREDS_JSON không hợp lệ.');
-            }
-        } else {
-            console.log('Initializing Vision Client using key file:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
-            visionClient = new ImageAnnotatorClient({
-                keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
-            });
-        }
-    }
-    return visionClient;
-};
-
-/**
- * Real OCR function using Google Cloud Vision
- */
-const performOCR = async (imagePath) => {
-    try {
-        console.log('--- Starting OCR Process ---');
-        console.log('Target Image Path:', imagePath);
-        
-        const client = getVisionClient();
-        const [result] = await client.textDetection(imagePath);
-        
-        if (!result) {
-            console.error('OCR Result is empty or undefined');
-            throw new Error('Google Vision không trả về kết quả.');
-        }
-
-        const fullText = result.fullTextAnnotation ? result.fullTextAnnotation.text : '';
-        console.log('Recognized Text Length:', fullText.length);
-        
-        if (fullText.length === 0) {
-            console.warn('OCR detected zero characters.');
-        }
-
-        return fullText.replace(/\r?\n|\r/g, " ");
-    } catch (error) {
-        console.error('--- Google Vision Detailed Error ---');
-        console.error('Error Code:', error.code);
-        console.error('Error Message:', error.message);
-        console.error('------------------------------------');
-        throw new Error(`Lỗi nhận diện Google Vision: ${error.message}`);
-    }
-};
-
-/**
- * Alternative OCR function using Tesseract.js (Free, no cloud billing)
- */
-const performOCRTesseract = async (imagePath) => {
-    try {
-        console.log('--- Starting Tesseract OCR Process ---');
-        console.log('Target Image Path:', imagePath);
-        
-        // Use 'chi_sim' for Simplified Chinese. 'chi_tra' for Traditional.
-        const result = await Tesseract.recognize(
-            imagePath,
-            'chi_sim',
-            { logger: m => console.log(`Tesseract Progress: ${m.status} ${Math.round(m.progress * 100)}%`) }
-        );
-        
-        const fullText = result.data.text || '';
-        console.log('Recognized Text Length:', fullText.length);
-        
-        if (fullText.length === 0) {
-            console.warn('OCR detected zero characters.');
-        }
-
-        // Clean up newlines and whitespaces
-        return fullText.replace(/\s+/g, "");
-    } catch (error) {
-        console.error('--- Tesseract OCR Detailed Error ---');
-        console.error('Error Message:', error.message);
-        console.error('------------------------------------');
-        throw new Error(`Lỗi nhận diện Tesseract: ${error.message}`);
-    }
-};
 
 /**
  * Alternative OCR function using OCR.Space API (Free, needs email registration)
@@ -169,17 +76,16 @@ exports.scanImage = async (req, res) => {
             return res.status(400).json({ status: 'fail', message: 'Vui lòng cung cấp hình ảnh.' });
         }
 
-        // 1. Perform OCR (Text Recognition)
-        // Ưu tiên Google Cloud Vision (nhanh, chính xác), fallback sang OCR.Space
+        // 1. Perform OCR bằng OCR.Space API (free, không cần thanh toán)
         let rawText = '';
         try {
-            console.log('Attempting OCR with Google Cloud Vision...');
-            rawText = await performOCR(req.file.path);
-            console.log('Google Vision OCR success.');
-        } catch (visionErr) {
-            console.warn('Google Vision failed, falling back to OCR.Space:', visionErr.message);
             rawText = await performOCROcrSpace(req.file.path);
-            console.log('OCR.Space fallback success.');
+        } catch (ocrErr) {
+            console.error('OCR.Space error:', ocrErr.message);
+            return res.status(503).json({
+                status: 'error',
+                message: 'Không thể nhận diện văn bản. Vui lòng thử lại sau.'
+            });
         }
 
         // 2. Lọc: Chỉ giữ lại chữ Hán + số, bỏ hết ký tự Latin, dấu câu, ký tự đặc biệt
