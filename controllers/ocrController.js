@@ -68,138 +68,95 @@ const isChineseChar = (str) => /[\u4e00-\u9fff\u3400-\u4dbf\uF900-\uFAFF]/.test(
 const isNumber = (str) => /^[0-9]+$/.test(str);
 
 exports.scanImage = async (req, res) => {
+    let rawText = '';
     try {
-        if (!req.file) {
-            return res.status(400).json({ status: 'fail', message: 'Vui lòng cung cấp hình ảnh.' });
-        }
+        if (!req.file) return res.status(400).json({ status: 'fail', message: 'Vui lòng cung cấp hình ảnh.' });
 
-        // 1. Perform OCR bằng OCR.Space API (free, không cần thanh toán)
-        let rawText = '';
+        // 1. OCR
         try {
             rawText = await performOCROcrSpace(req.file.path);
         } catch (ocrErr) {
-            console.error('OCR.Space error:', ocrErr.message);
-            return res.status(503).json({
-                status: 'error',
-                message: 'Không thể nhận diện văn bản. Vui lòng thử lại sau.'
-            });
+            return res.status(503).json({ status: 'error', message: 'Không thể nhận diện văn bản.' });
         }
 
-        // 2. Lọc: Chỉ giữ lại chữ Hán + số, bỏ hết ký tự Latin, dấu câu, ký tự đặc biệt
-        //    Regex: giữ ký tự CJK (\u4e00-\u9fff, mở rộng) và chữ số 0-9
-        const chineseAndNumbers = rawText.replace(/[^\u4e00-\u9fff\u3400-\u4dbf\uF900-\uFAFF0-9]/g, '');
-        console.log('Filtered text (Chinese + numbers only):', chineseAndNumbers);
-
-        if (!chineseAndNumbers || chineseAndNumbers.length === 0) {
+        // 2. Filter & Truncate (Cực kỳ quan trọng để giữ RAM thấp)
+        let filtered = rawText.replace(/[^\u4e00-\u9fff\u3400-\u4dbf\uF900-\uFAFF0-9]/g, '');
+        if (filtered.length > 800) filtered = filtered.substring(0, 800); // Giảm xuống 800 cho an toàn tuyệt đối
+        
+        if (!filtered) {
             return res.status(200).json({
                 status: 'success',
-                data: {
-                    rawText: rawText,
-                    filteredText: chineseAndNumbers,
-                    fullPinyin: '',
-                    fullMeaning: 'Không tìm thấy chữ Tiếng Trung trong ảnh.',
-                    words: [],
-                    imageUrl: req.file.path
-                }
+                data: { rawText, filteredText: '', fullPinyin: '', fullMeaning: 'Không có chữ Hán.', words: [], imageUrl: req.file.path }
             });
         }
 
-        // 3. Chỉ lấy phần chữ Hán (không kèm số) để dịch và tạo pinyin đoạn văn
-        const chineseOnly = chineseAndNumbers.replace(/[0-9]/g, '');
-
-        // 4. Word Segmentation: Tách câu thành các từ có nghĩa (chỉ dùng trên phần chữ Hán)
-        const segmented = segment.doSegment(chineseOnly, { stripPunctuation: true });
-
-        // 5. Xây dựng danh sách từ: chữ Hán được tra pinyin + nghĩa, số giữ nguyên
-        //    Tách số từ chuỗi gốc đan xen với chữ Hán để giữ đúng thứ tự hiển thị
+        // 3. Tách Tokens (Số và Chữ Hán)
         const tokens = [];
-        let buffer = '';
-        for (const char of chineseAndNumbers) {
+        let numBuf = '';
+        for (const char of filtered) {
             if (/[0-9]/.test(char)) {
-                if (buffer) { tokens.push({ type: 'chinese', value: buffer }); buffer = ''; }
-                // Gộp số liên tiếp
-                if (tokens.length > 0 && tokens[tokens.length - 1].type === 'number') {
-                    tokens[tokens.length - 1].value += char;
-                } else {
-                    tokens.push({ type: 'number', value: char });
-                }
+                numBuf += char;
             } else {
-                buffer += char;
+                if (numBuf) { tokens.push({ type: 'num', val: numBuf }); numBuf = ''; }
+                if (tokens.length > 0 && tokens[tokens.length - 1].type === 'cn_raw') {
+                    tokens[tokens.length - 1].val += char;
+                } else {
+                    tokens.push({ type: 'cn_raw', val: char });
+                }
             }
         }
-        if (buffer) tokens.push({ type: 'chinese', value: buffer });
+        if (numBuf) tokens.push({ type: 'num', val: numBuf });
 
-        // 5. Xây dựng danh sách từ: chữ Hán được tra pinyin + nghĩa, số giữ nguyên
-        const processedWords = [];
+        // 4. Xử lý tuần tự (Không dùng Promise.all để tránh spike RAM)
+        const words = [];
+        let combinedPinyin = '';
+        
         for (const token of tokens) {
-            if (token.type === 'number') {
-                processedWords.push({
-                    text: token.value,
-                    pinyin: '',
-                    meaning: '',
-                    dbMeaning: null,
-                    audioUrl: null,
-                    isLearned: false,
-                    type: 'number'
-                });
+            if (token.type === 'num') {
+                words.push({ text: token.val, pinyin: '', meaning: '', dbMeaning: null, audioUrl: null, isLearned: false, type: 'number' });
+                combinedPinyin += token.val + ' ';
             } else {
-                const chunkSegmented = segment.doSegment(token.value, { stripPunctuation: true });
-                // Xử lý tuần tự (Sequential) thay vì Promise.all để tránh spike RAM
-                for (const seg of chunkSegmented) {
-                    const text = seg.w;
+                const segs = segment.doSegment(token.val, { stripPunctuation: true });
+                for (const s of segs) {
+                    const text = s.w;
                     if (!isChineseChar(text)) continue;
 
-                    const py = pinyin(text, { style: 'tone' }).map(item => item[0]).join(' ');
-                    const dbWord = await Word.findOne({ hanzi: text }).lean();
+                    const py = pinyin(text, { style: 'tone' }).map(i => i[0]).join(' ');
+                    const db = await Word.findOne({ hanzi: text }).lean();
 
-                    processedWords.push({
-                        text: text,
-                        pinyin: py,
-                        meaning: dbWord ? dbWord.meaning : 'Bấm để tra nghĩa chi tiết',
-                        dbMeaning: dbWord ? dbWord.meaning : null,
-                        audioUrl: dbWord && dbWord.audioUrl
-                            ? dbWord.audioUrl
-                            : `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(text)}&type=2`,
-                        isLearned: !!dbWord,
+                    words.push({
+                        text, pinyin: py,
+                        meaning: db ? db.meaning : 'Bấm để xem nghĩa',
+                        dbMeaning: db ? db.meaning : null,
+                        audioUrl: db && db.audioUrl ? db.audioUrl : `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(text)}&type=2`,
+                        isLearned: !!db,
                         type: 'chinese'
                     });
+                    combinedPinyin += py + ' ';
                 }
             }
         }
 
-        // 6. Tạo pinyin toàn đoạn (chỉ từ chữ Hán)
-        const fullPinyinArray = pinyin(chineseOnly, { style: 'tone' });
-        const fullPinyin = fullPinyinArray.map(item => item[0]).join(' ');
-
-        // 7. Dịch toàn bộ phần chữ Hán sang Tiếng Việt (timeout 15 giây)
-        let fullMeaning = 'Đang cập nhật...';
-        try {
-            const transPromise = translatte(chineseOnly, { to: 'vi' });
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Translation timeout')), 15000)
-            );
-            const translation = await Promise.race([transPromise, timeoutPromise]);
-            fullMeaning = translation.text;
-        } catch (transErr) {
-            console.error('Translation Error:', transErr.message);
-            fullMeaning = 'Không thể dịch tự động do lỗi kết nối (API giới hạn).';
+        // 5. Dịch (Chỉ dịch 300 ký tự đầu để siêu tiết kiệm RAM)
+        const toTranslate = filtered.replace(/[0-9]/g, '').substring(0, 300);
+        let meaning = 'Đang cập nhật...';
+        if (toTranslate) {
+            try {
+                const trans = await Promise.race([
+                    translatte(toTranslate, { to: 'vi' }),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('T')), 7000))
+                ]);
+                meaning = trans.text;
+            } catch (e) { meaning = 'Dịch vụ bận, vui lòng tra cứu từng từ.'; }
         }
 
         res.status(200).json({
             status: 'success',
-            data: {
-                rawText: rawText,
-                filteredText: chineseAndNumbers,
-                fullPinyin: fullPinyin,
-                fullMeaning: fullMeaning,
-                words: processedWords,
-                imageUrl: req.file.path
-            }
+            data: { rawText, filteredText: filtered, fullPinyin: combinedPinyin.trim(), fullMeaning: meaning, words, imageUrl: req.file.path }
         });
 
     } catch (err) {
-        console.error('OCR Error:', err);
-        res.status(500).json({ status: 'error', message: err.message });
+        res.status(500).json({ status: 'error', message: 'Lỗi hệ thống (RAM): ' + err.message });
     }
 };
 

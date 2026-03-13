@@ -63,8 +63,9 @@ exports.analyzeText = async (req, res) => {
         // Kiểm tra ký tự là chữ Hán hay Dấu câu
         const isChineseChar = (str) => /[\u4e00-\u9fa5]/.test(str);
 
-        // Chạy Promise.all cho tất cả các từ và return trực tiếp để giữ đúng thứ tự
-        const analyzedChunks = await Promise.all(segments.map(async (word) => {
+        // Sử dụng vòng lặp tuần tự (Sequential) thay vì Promise.all để tránh spike RAM trên server 512MB
+        const analyzedChunks = [];
+        for (const word of segments) {
             let type = 'word';
             let pyStr = '';
             let meaningStr = '';
@@ -72,27 +73,22 @@ exports.analyzeText = async (req, res) => {
             if (word === '\n' || word === '\r\n') {
                 type = 'newline';
             } else if (!isChineseChar(word)) {
-                // Các dấu câu, số, chữ Alphabet -> không phải 'word' cần học
                 type = 'punctuation';
             } else {
-                // Lấy Pinyin
                 const pyArray = pinyin(word, { style: 'tone' });
                 pyStr = pyArray.map(item => item[0]).join('');
 
-                // Lấy nghĩa tiếng Việt từ Database (nếu có)
                 const dbWord = await Word.findOne({ hanzi: word }).lean();
-                if (dbWord) {
-                    meaningStr = dbWord.meaning;
-                }
+                if (dbWord) meaningStr = dbWord.meaning;
             }
 
-            return {
+            analyzedChunks.push({
                 text: word,
                 pinyin: pyStr,
                 meaning: meaningStr,
                 type: type
-            };
-        }));
+            });
+        }
         
         res.status(200).json({ status: 'success', data: { segments: analyzedChunks } });
     } catch (err) {
