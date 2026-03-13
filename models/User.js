@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema({
     lastActive: { type: Date, default: Date.now },
     hskLevel: { type: Number, default: 1 },
     completedLessons: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Lesson' }],
+    searchHistory: [{ type: String }], // Lưu mảng chữ Hán vừa tra cứu
     role: { type: String, enum: ['user', 'admin'], default: 'user' }
 }, { timestamps: true });
 

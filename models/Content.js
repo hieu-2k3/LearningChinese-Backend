@@ -7,7 +7,13 @@ const wordSchema = new mongoose.Schema({
     example: { type: String },
     audioUrl: { type: String },
     strokeOrderUrl: { type: String }, // For writing part
-    lessonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Lesson' }
+    lessonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Lesson' },
+    
+    // Fields for Dictionary
+    ancientRecord: { type: String }, // Điển tích cổ
+    category: { type: String, default: 'Chung' }, // Ẩm thực, Địa danh...
+    isWordOfTheDay: { type: Boolean, default: false },
+    searchCount: { type: Number, default: 0 }
 });
 
 const lessonSchema = new mongoose.Schema({

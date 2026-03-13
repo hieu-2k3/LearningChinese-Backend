@@ -6,6 +6,7 @@ const readingController = require('../controllers/readingController');
 const hskController = require('../controllers/hskController');
 const ocrController = require('../controllers/ocrController');
 const ocrLightController = require('../controllers/ocrLightController');
+const dictionaryController = require('../controllers/dictionaryController');
 const { upload } = require('../utils/storage');
 const { protect } = require('../middleware/auth');
 
@@ -43,6 +44,11 @@ router.get('/hsk/dashboard/:level', hskController.getHskDashboard);
 router.get('/hsk/exams/:id', hskController.getExamById);
 router.post('/hsk/submit', hskController.submitExamResult);
 router.get('/hsk/history', hskController.getExamHistory);
+
+// Dictionary Routes
+router.get('/dictionary/home', dictionaryController.getDictionaryHome);
+router.get('/dictionary/search', dictionaryController.searchWords);
+router.get('/dictionary/:hanzi', dictionaryController.getWordDetail);
 
 // OCR Routes
 router.post('/ocr/scan', upload.single('image'), ocrController.scanImage);
