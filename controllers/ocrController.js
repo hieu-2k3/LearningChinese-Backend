@@ -156,6 +156,12 @@ const performOCROcrSpace = async (imagePath) => {
     }
 };
 
+// Helper: Kiểm tra chuỗi có chứa chữ Hán không
+const isChineseChar = (str) => /[\u4e00-\u9fff\u3400-\u4dbf\uF900-\uFAFF]/.test(str);
+
+// Helper: Kiểm tra chuỗi có phải là số không
+const isNumber = (str) => /^[0-9]+$/.test(str);
+
 exports.scanImage = async (req, res) => {
     try {
         if (!req.file) {
@@ -163,60 +169,115 @@ exports.scanImage = async (req, res) => {
         }
 
         // 1. Perform OCR (Text Recognition)
-        // Switch to OCR.Space API as default free alternative
         const rawText = await performOCROcrSpace(req.file.path);
 
-        // 2. Word Segmentation (Tách câu thành các từ có nghĩa)
-        const segmented = segment.doSegment(rawText, {
-            stripPunctuation: true
-        });
+        // 2. Lọc: Chỉ giữ lại chữ Hán + số, bỏ hết ký tự Latin, dấu câu, ký tự đặc biệt
+        //    Regex: giữ ký tự CJK (\u4e00-\u9fff, mở rộng) và chữ số 0-9
+        const chineseAndNumbers = rawText.replace(/[^\u4e00-\u9fff\u3400-\u4dbf\uF900-\uFAFF0-9]/g, '');
+        console.log('Filtered text (Chinese + numbers only):', chineseAndNumbers);
 
-        // 3. Process each word to get Pinyin, Meaning and search in Database
-        const processedWords = await Promise.all(segmented.map(async (seg) => {
-            const text = seg.w;
-            
-            // Get Pinyin from 'pinyin' library
-            const py = pinyin(text, {
-                style: 'tone',
-            }).map(item => item[0]).join(' ');
+        if (!chineseAndNumbers || chineseAndNumbers.length === 0) {
+            return res.status(200).json({
+                status: 'success',
+                data: {
+                    rawText: rawText,
+                    filteredText: chineseAndNumbers,
+                    fullPinyin: '',
+                    fullMeaning: 'Không tìm thấy chữ Tiếng Trung trong ảnh.',
+                    words: [],
+                    imageUrl: req.file.path
+                }
+            });
+        }
 
-            // Search in our app's own database for advanced data (HSK level, audio, etc.)
-            const dbWord = await Word.findOne({ hanzi: text });
+        // 3. Chỉ lấy phần chữ Hán (không kèm số) để dịch và tạo pinyin đoạn văn
+        const chineseOnly = chineseAndNumbers.replace(/[0-9]/g, '');
 
-            return {
-                text: text,
-                pinyin: py,
-                // Đã huỷ hanzi vì vượt giới hạn RAM 512MB
-                // Nghĩa sẽ lấy từ DB, hoặc báo người dùng tra chi tiết
-                meaning: dbWord ? dbWord.meaning : 'Bấm để tra nghĩa chi tiết',
-                dbMeaning: dbWord ? dbWord.meaning : null,
-                audioUrl: dbWord && dbWord.audioUrl ? dbWord.audioUrl : `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(text)}&type=2`,
-                isLearned: !!dbWord
-            };
-        }));
+        // 4. Word Segmentation: Tách câu thành các từ có nghĩa (chỉ dùng trên phần chữ Hán)
+        const segmented = segment.doSegment(chineseOnly, { stripPunctuation: true });
 
-        // Create full pinyin for the entire paragraph
-        const fullPinyinArray = pinyin(rawText, { style: 'tone' });
+        // 5. Xây dựng danh sách từ: chữ Hán được tra pinyin + nghĩa, số giữ nguyên
+        //    Tách số từ chuỗi gốc đan xen với chữ Hán để giữ đúng thứ tự hiển thị
+        const tokens = [];
+        let buffer = '';
+        for (const char of chineseAndNumbers) {
+            if (/[0-9]/.test(char)) {
+                if (buffer) { tokens.push({ type: 'chinese', value: buffer }); buffer = ''; }
+                // Gộp số liên tiếp
+                if (tokens.length > 0 && tokens[tokens.length - 1].type === 'number') {
+                    tokens[tokens.length - 1].value += char;
+                } else {
+                    tokens.push({ type: 'number', value: char });
+                }
+            } else {
+                buffer += char;
+            }
+        }
+        if (buffer) tokens.push({ type: 'chinese', value: buffer });
+
+        // Xử lý từng token
+        const processedWords = [];
+        for (const token of tokens) {
+            if (token.type === 'number') {
+                // Số: không cần pinyin / nghĩa
+                processedWords.push({
+                    text: token.value,
+                    pinyin: '',
+                    meaning: '',
+                    dbMeaning: null,
+                    audioUrl: null,
+                    isLearned: false,
+                    type: 'number'
+                });
+            } else {
+                // Chữ Hán: tách từ và tra nghĩa
+                const chunkSegmented = segment.doSegment(token.value, { stripPunctuation: true });
+                const chunkWords = await Promise.all(chunkSegmented.map(async (seg) => {
+                    const text = seg.w;
+                    if (!isChineseChar(text)) return null; // bỏ nếu không phải chữ Hán
+
+                    const py = pinyin(text, { style: 'tone' }).map(item => item[0]).join(' ');
+                    const dbWord = await Word.findOne({ hanzi: text }).lean();
+
+                    return {
+                        text: text,
+                        pinyin: py,
+                        meaning: dbWord ? dbWord.meaning : 'Bấm để tra nghĩa chi tiết',
+                        dbMeaning: dbWord ? dbWord.meaning : null,
+                        audioUrl: dbWord && dbWord.audioUrl
+                            ? dbWord.audioUrl
+                            : `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(text)}&type=2`,
+                        isLearned: !!dbWord,
+                        type: 'chinese'
+                    };
+                }));
+                processedWords.push(...chunkWords.filter(Boolean));
+            }
+        }
+
+        // 6. Tạo pinyin toàn đoạn (chỉ từ chữ Hán)
+        const fullPinyinArray = pinyin(chineseOnly, { style: 'tone' });
         const fullPinyin = fullPinyinArray.map(item => item[0]).join(' ');
 
-        // Translate the full text to Vietnamese
-        let fullMeaning = "Đang cập nhật...";
+        // 7. Dịch toàn bộ phần chữ Hán sang Tiếng Việt
+        let fullMeaning = 'Đang cập nhật...';
         try {
-            const translation = await translatte(rawText, { to: 'vi' });
+            const translation = await translatte(chineseOnly, { to: 'vi' });
             fullMeaning = translation.text;
         } catch (transErr) {
             console.error('Translation Error:', transErr.message);
-            fullMeaning = "Không thể dịch tự động do lỗi kết nối (API giới hạn).";
+            fullMeaning = 'Không thể dịch tự động do lỗi kết nối (API giới hạn).';
         }
 
         res.status(200).json({
             status: 'success',
             data: {
                 rawText: rawText,
+                filteredText: chineseAndNumbers,
                 fullPinyin: fullPinyin,
                 fullMeaning: fullMeaning,
                 words: processedWords,
-                imageUrl: req.file.path // If using Cloudinary/Multer
+                imageUrl: req.file.path
             }
         });
 
