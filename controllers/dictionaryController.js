@@ -6,17 +6,31 @@ const User = require('../models/User');
  */
 exports.getDictionaryHome = async (req, res) => {
     try {
-        // 1. Bản tin cổ thư (Word of the Day) - Lấy từ mới nhất được set isWordOfTheDay hoặc ngẫu nhiên
+        // 1. Bản tin cổ thư (Word of the Day)
         let wordOfTheDay = await Word.findOne({ isWordOfTheDay: true }).sort('-updatedAt');
         
         if (!wordOfTheDay) {
-            // Nếu tuyệt đối không có từ nào, trả về dữ liệu rỗng thay vì crash
+            // Nếu không có từ nào được set làm "Word of the Day", lấy ngẫu nhiên 1 từ trong DB
+            const count = await Word.countDocuments();
+            if (count > 0) {
+                const random = Math.floor(Math.random() * count);
+                wordOfTheDay = await Word.findOne().skip(random);
+            }
+        }
+        
+        if (!wordOfTheDay) {
+            // Nếu tuyệt đối không có từ nào trong cả DB (trường hợp DB rỗng hoàn toàn)
             return res.status(200).json({
                 status: 'success',
                 data: {
-                    wordOfTheDay: { hanzi: '---', pinyin: '---', meaning: 'Chưa có từ vựng.', ancientRecord: 'Đang cập nhật...' },
-                    history: [],
-                    categories: []
+                    wordOfTheDay: { hanzi: '---', pinyin: '---', meaning: 'Chưa có dữ liệu từ vựng.', ancientRecord: 'Vui lòng thêm từ vào Database' },
+                    history: (req.user && req.user.searchHistory) ? req.user.searchHistory.slice(0, 10) : [],
+                    categories: [
+                        { id: "culinary", name: "Ẩm thực", icon: "cup.and.saucer.fill" },
+                        { id: "place", name: "Địa danh", icon: "map.fill" },
+                        { id: "comm", name: "Giao tiếp", icon: "bubble.left.and.bubble.right.fill" },
+                        { id: "culture", name: "Văn hóa", icon: "scroll.fill" }
+                    ]
                 }
             });
         }
