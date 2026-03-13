@@ -53,21 +53,23 @@ exports.searchWords = async (req, res) => {
         const { q } = req.query;
         if (!q) return res.status(400).json({ status: 'fail', message: 'Vui lòng nhập từ khóa tìm kiếm.' });
 
-        const searchRegex = new RegExp(q, 'i');
+        // Tạo Regex tìm kiếm không phân biệt hoa thường
+        const searchRegex = new RegExp(q.trim(), 'i');
         
         const results = await Word.find({
             $or: [
-                { hanzi: searchRegex },
-                { pinyin: searchRegex },
-                { meaning: searchRegex }
+                { hanzi: { $regex: searchRegex } },
+                { pinyin: { $regex: searchRegex } },
+                { meaning: { $regex: searchRegex } }
             ]
-        }).limit(20);
+        }).limit(20).lean();
 
-        // Lưu vào lịch sử tra cứu của User (nếu tìm thấy và là chữ Hán chính xác)
-        if (results.length > 0 && /[\u4e00-\u9fff]/.test(q)) {
-            const user = await User.findById(req.user.id);
-            // Xóa cũ nạp mới để đưa lên đầu
-            user.searchHistory = [q, ...user.searchHistory.filter(h => h !== q)].slice(0, 20);
+        // Cập nhật lịch sử tra cứu cho User (Bất kể là tiếng Việt hay chữ Hán)
+        const user = await User.findById(req.user.id);
+        if (user) {
+            // Đưa từ vừa tra lên đầu, giới hạn 15 từ gần nhất
+            const cleanQ = q.trim();
+            user.searchHistory = [cleanQ, ...user.searchHistory.filter(h => h !== cleanQ)].slice(0, 15);
             await user.save();
         }
 
