@@ -1,5 +1,4 @@
 require('dotenv').config();
-const Segment = require('segment');
 const { pinyin } = require('pinyin');
 const translatte = require('translatte');
 const { Word } = require('../models/Content');
@@ -9,9 +8,7 @@ const fs = require('fs');
 
 console.log('OCR Engine: OCR.Space API (free tier)');
 
-// Initialize segment (Dùng khoảng 115MB RAM, an toàn cho server 512MB)
-const segment = new Segment();
-segment.useDefault();
+const segment = require('../utils/segment');
 
 /**
  * Alternative OCR function using OCR.Space API (Free, needs email registration)

@@ -1,9 +1,7 @@
 const { Reading, Word } = require('../models/Content');
-const Segment = require('segment');
+const segment = require('../utils/segment');
 const { pinyin } = require('pinyin');
 
-const segment = new Segment();
-segment.useDefault();
 
 // ---------------------------
 // API DÀNH CHO CLIENT MAPP (iOS)

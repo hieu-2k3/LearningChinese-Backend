@@ -1,9 +1,7 @@
 const { Lesson, Word, Listening } = require('../models/Content');
 const User = require('../models/User');
-const Segment = require('segment');
+const segment = require('../utils/segment');
 
-const segment = new Segment();
-segment.useDefault();
 
 exports.getAllLessons = async (req, res) => {
     try {
