@@ -126,7 +126,7 @@ exports.scanImage = async (req, res) => {
                         text, pinyin: py,
                         meaning: s.meaning || 'Bấm để xem nghĩa',
                         dbMeaning: s.meaning || null,
-                        audioUrl: s.audioUrl || `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(text)}&type=2`,
+                        audioUrl: s.audioUrl || `https://dict.youdao.com/dictvoice?audio=${text}&type=2`,
                         isLearned: !!s.meaning,
                         type: 'chinese'
                     });
@@ -184,7 +184,7 @@ exports.getWordDetail = async (req, res) => {
                 definition: [ { definition: definitionText } ], // Format giả lập thư viện hanzi trả về
                 decomposition: { character: word, components1: [], components2: [] }, // Format giả lập
                 examples: [],
-                audioUrl: dbWord && dbWord.audioUrl ? dbWord.audioUrl : `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=2`,
+                audioUrl: dbWord && dbWord.audioUrl ? dbWord.audioUrl : `https://dict.youdao.com/dictvoice?audio=${word}&type=2`,
                 hskLevel: dbWord && dbWord.hskLevel ? dbWord.hskLevel : 'N/A'
             }
         });

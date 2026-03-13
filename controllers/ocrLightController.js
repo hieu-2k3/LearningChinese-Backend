@@ -19,7 +19,7 @@ exports.lookupText = async (req, res) => {
                 text: token.text,
                 pinyin: py,
                 meaning: token.meaning || 'Bấm để tra nghĩa',
-                audioUrl: token.audioUrl || `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(token.text)}&type=2`,
+                audioUrl: token.audioUrl || `https://dict.youdao.com/dictvoice?audio=${token.text}&type=2`,
                 type: token.type === 'number' ? 'number' : 'chinese'
             };
         });
