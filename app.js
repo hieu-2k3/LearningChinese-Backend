@@ -30,9 +30,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 if (!process.env.MONGODB_URI) {
     console.error('❌ FATAL: MONGODB_URI is not defined in environment variables!');
 } else {
-    mongoose.connect(process.env.MONGODB_URI)
-        .then(() => console.log('✅ MongoDB Connected'))
-        .catch(err => console.error('❌ DB Connection Error:', err));
+    console.log('⏳ Connecting to MongoDB...');
+    mongoose.connect(process.env.MONGODB_URI, {
+        serverSelectionTimeoutMS: 5000 // Timeout sau 5 giây nếu không kết nối được
+    })
+    .then(() => console.log('✅ MongoDB Connected'))
+    .catch(err => console.error('❌ DB Connection Error:', err));
 }
 
 // Routes
@@ -47,5 +50,6 @@ app.get('/', (req, res) => {
 // Start Server
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`🚀 Server is listening on port ${PORT}`);
+    console.log(`🔗 Health check available at: http://localhost:${PORT}/`);
 });
