@@ -150,7 +150,7 @@ exports.scanImage = async (req, res) => {
 
         res.status(200).json({
             status: 'success',
-            data: { rawText, filteredText: filtered, fullPinyin: combinedPinyin.trim(), fullMeaning: meaning, words, imageUrl: req.file.path }
+            data: { rawText, filteredText: filtered, fullPinyin: combinedPinyin.trim(), fullMeaning: meaning, words: wordsArr, imageUrl: req.file.path }
         });
 
     } catch (err) {
