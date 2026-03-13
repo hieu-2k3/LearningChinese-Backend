@@ -1,4 +1,3 @@
-const { lookupText } = require('./ocrLightController');
 const { segmentText } = require('../utils/wordSegmenter');
 const { pinyin } = require('pinyin');
 const translatte = require('translatte');
@@ -8,8 +7,11 @@ exports.lookupText = async (req, res) => {
         const { text } = req.body;
         if (!text) return res.status(400).json({ status: 'fail', message: 'Vui lòng cung cấp văn bản.' });
 
-        // Tách từ thông minh bằng DB (Gộp được "朋友", "学习" thay vì tách lẻ)
-        const tokens = await segmentText(text);
+        // Định nghĩa cleanText để tránh lỗi "not defined"
+        const cleanText = text.replace(/[^\u4e00-\u9fff\u3400-\u4dbf\uF900-\uFAFF0-9 ]/g, '');
+
+        // Tách từ thông minh bằng DB
+        const tokens = await segmentText(cleanText);
         
         const words = tokens.map(token => {
             const py = pinyin(token.text, { style: 'tone' }).map(i => i[0]).join(' ');
@@ -22,7 +24,7 @@ exports.lookupText = async (req, res) => {
             };
         });
 
-        // Dịch toàn đoạn (Timeout ngắn)
+        // Dịch toàn đoạn
         let fullMeaning = '';
         try {
             const trans = await translatte(cleanText.substring(0, 200), { to: 'vi' });
