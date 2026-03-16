@@ -14,7 +14,16 @@ exports.chatWithAI = async (req, res) => {
         }
 
         // 1. Khởi tạo Gemini
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            return res.status(500).json({ 
+                status: 'error', 
+                message: 'GEMINI_API_KEY bị thiếu trong cấu hình hệ thống.' 
+            });
+        }
+        
+        const genAI = new GoogleGenerativeAI(apiKey);
+        // Sử dụng identifier chuẩn xác nhất
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         // 2. Thiết lập System Instruction (Guardrails)
