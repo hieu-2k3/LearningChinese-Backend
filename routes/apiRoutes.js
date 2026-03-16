@@ -7,6 +7,7 @@ const hskController = require('../controllers/hskController');
 const ocrController = require('../controllers/ocrController');
 const ocrLightController = require('../controllers/ocrLightController');
 const dictionaryController = require('../controllers/dictionaryController');
+const aiController = require('../controllers/aiController');
 const { upload } = require('../utils/storage');
 const { protect } = require('../middleware/auth');
 
@@ -56,5 +57,8 @@ router.post('/dictionary/toggle-reaction', dictionaryController.toggleReaction);
 router.post('/ocr/scan', upload.single('image'), ocrController.scanImage);
 router.post('/ocr/lookup', ocrLightController.lookupText);
 router.get('/ocr/detail/:word', ocrController.getWordDetail);
+
+// AI Routes
+router.post('/ai/chat', aiController.chatWithAI);
 
 module.exports = router;
