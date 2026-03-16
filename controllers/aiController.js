@@ -23,8 +23,8 @@ exports.chatWithAI = async (req, res) => {
         }
         
         const genAI = new GoogleGenerativeAI(apiKey);
-        // Sử dụng identifier chuẩn xác nhất
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        // Sử dụng identifier 'gemini-1.5-flash-latest' để tránh lỗi 404 trên các vùng khác nhau
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
         // 2. Thiết lập System Instruction (Guardrails)
         const systemInstruction = `
