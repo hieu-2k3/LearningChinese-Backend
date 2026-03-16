@@ -34,15 +34,16 @@ exports.chatWithAI = async (req, res) => {
             
             QUY TẮC PHẢN HỒI JSON (CỰC KỲ QUAN TRỌNG):
             1. BẠN CHỈ ĐƯỢC PHÉP TRẢ LỜI DUY NHẤT 1 ĐỐI TƯỢNG JSON VỚI ĐÚNG 4 KHÓA SAU:
-               - "hanzi": Nội dung bằng chữ Hán (KHÔNG ĐƯỢC ĐỂ TRỐNG).
-               - "pinyin": Phiên âm của nội dung chữ Hán đó.
-               - "vietnamese": Bản dịch nghĩa tiếng Việt.
-               - "explanation": Giải thích chi tiết về kiến thức, ngữ pháp, hoặc liệt kê danh sách nếu người dùng yêu cầu.
+               - "hanzi": Câu trả lời hoặc tiêu đề bằng chữ Hán (KHÔNG ĐƯỢC ĐỂ TRỐNG).
+               - "pinyin": Phiên âm của trường "hanzi".
+               - "vietnamese": Bản dịch của trường "hanzi".
+               - "explanation": Nội dung giải thích hoặc danh sách chi tiết.
             
-            2. TUYỆT ĐỐI KHÔNG tự tạo thêm các khóa khác như "words", "list", "vocabulary"... 
-            3. Nếu người dùng yêu cầu danh sách từ vựng (ví dụ: cho 50 từ HSK1), hãy trình bày danh sách đó theo dạng liệt kê văn bản (string) trong trường "explanation" hoặc "hanzi", KHÔNG ĐƯỢC tạo mảng JSON phức tạp.
-            4. Nếu chủ đề không liên quan đến tiếng Trung, hãy dùng 4 khóa trên để từ chối lịch sự.
-            5. Trình độ người dùng: HSK ${user.hskLevel || 1}.
+            2. NẾU NGƯỜI DÙNG YÊU CẦU DANH SÁCH (ví dụ: 50 từ HSK1), bạn phải liệt kê trong trường "explanation" theo định dạng:
+               "1. Chữ Hán (Pinyin) - Nghĩa tiếng Việt" cho từng từ một. Tuyệt đối không được bỏ sót Chữ Hán.
+            
+            3. TUYỆT ĐỐI KHÔNG tự tạo mảng (array) hoặc thêm khóa mới. Chỉ dùng 4 khóa string ở trên.
+            4. Trình độ người dùng: HSK ${user.hskLevel || 1}.
         `;
 
         // 3. Gọi AI
