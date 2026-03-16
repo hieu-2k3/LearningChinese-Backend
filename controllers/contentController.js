@@ -122,9 +122,25 @@ exports.getLessonById = async (req, res) => {
             });
         }
 
+        // Map vocabulary to include isLiked/isDisliked status
+        const personalizedVocabulary = (lesson.vocabulary || []).map(word => {
+            const isLiked = req.user.likedWords && req.user.likedWords.some(id => id.toString() === word._id.toString());
+            const isDisliked = req.user.dislikedWords && req.user.dislikedWords.some(id => id.toString() === word._id.toString());
+            return {
+                ...word._doc,
+                isLiked,
+                isDisliked
+            };
+        });
+
         res.status(200).json({
             status: 'success',
-            data: { lesson }
+            data: { 
+                lesson: {
+                    ...lesson._doc,
+                    vocabulary: personalizedVocabulary
+                }
+            }
         });
     } catch (err) {
         res.status(400).json({ status: 'fail', message: err.message });

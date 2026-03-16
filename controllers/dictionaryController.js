@@ -92,10 +92,21 @@ exports.searchWords = async (req, res) => {
             await user.save();
         }
 
+        // Thêm trạng thái like/dislike cho kết quả tìm kiếm
+        const personalizedWords = results.map(word => {
+            const isLiked = req.user.likedWords && req.user.likedWords.some(id => id.toString() === word._id.toString());
+            const isDisliked = req.user.dislikedWords && req.user.dislikedWords.some(id => id.toString() === word._id.toString());
+            return {
+                ...word,
+                isLiked,
+                isDisliked
+            };
+        });
+
         res.status(200).json({
             status: 'success',
             results: results.length,
-            data: { words: results }
+            data: { words: personalizedWords }
         });
     } catch (err) {
         res.status(400).json({ status: 'fail', message: err.message });
@@ -118,12 +129,25 @@ exports.getWordDetail = async (req, res) => {
         word.searchCount += 1;
         await word.save();
 
+        // Kiểm tra xem user có thích hay không thích từ này không
+        let isLiked = false;
+        let isDisliked = false;
+        if (req.user) {
+            const user = await User.findById(req.user.id);
+            if (user) {
+                isLiked = user.likedWords.includes(word._id);
+                isDisliked = user.dislikedWords.includes(word._id);
+            }
+        }
+
         res.status(200).json({
             status: 'success',
             data: {
                 word: {
                     ...word._doc,
-                    audioUrl: word.audioUrl || `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word.hanzi)}&tl=zh-CN&client=tw-ob`
+                    audioUrl: word.audioUrl || `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word.hanzi)}&tl=zh-CN&client=tw-ob`,
+                    isLiked,
+                    isDisliked
                 }
             }
         });
@@ -131,3 +155,76 @@ exports.getWordDetail = async (req, res) => {
         res.status(400).json({ status: 'fail', message: err.message });
     }
 };
+
+/**
+ * Tương tác với từ vựng (Thích hoặc Không thích)
+ */
+exports.toggleReaction = async (req, res) => {
+    try {
+        const { wordId, type } = req.body; // type: 'like' hoặc 'dislike'
+        const user = await User.findById(req.user.id);
+        
+        if (!user) {
+            return res.status(404).json({ status: 'fail', message: 'Người dùng không tồn tại.' });
+        }
+
+        if (type === 'like') {
+            const isLiked = user.likedWords.includes(wordId);
+            if (isLiked) {
+                user.likedWords = user.likedWords.filter(id => id.toString() !== wordId);
+            } else {
+                user.likedWords.push(wordId);
+                user.dislikedWords = user.dislikedWords.filter(id => id.toString() !== wordId);
+            }
+            await user.save();
+            return res.status(200).json({
+                status: 'success',
+                message: isLiked ? 'Đã bỏ thích từ vựng.' : 'Đã thích từ vựng.',
+                data: { isLiked: !isLiked, isDisliked: false }
+            });
+        } else if (type === 'dislike') {
+            const isDisliked = user.dislikedWords.includes(wordId);
+            if (isDisliked) {
+                user.dislikedWords = user.dislikedWords.filter(id => id.toString() !== wordId);
+            } else {
+                user.dislikedWords.push(wordId);
+                user.likedWords = user.likedWords.filter(id => id.toString() !== wordId);
+            }
+            await user.save();
+            return res.status(200).json({
+                status: 'success',
+                message: isDisliked ? 'Đã bỏ không thích từ vựng.' : 'Đã không thích từ vựng.',
+                data: { isLiked: false, isDisliked: !isDisliked }
+            });
+        } else {
+            return res.status(400).json({ status: 'fail', message: 'Loại tương tác không hợp lệ.' });
+        }
+    } catch (err) {
+        res.status(400).json({ status: 'fail', message: err.message });
+    }
+};
+
+
+/**
+ * Lấy danh sách từ vựng đã thích của người dùng
+ */
+exports.getFavoriteWords = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).populate('likedWords');
+        
+        if (!user) {
+            return res.status(404).json({ status: 'fail', message: 'Người dùng không tồn tại.' });
+        }
+
+        res.status(200).json({
+            status: 'success',
+            results: user.likedWords.length,
+            data: {
+                favorites: user.likedWords
+            }
+        });
+    } catch (err) {
+        res.status(400).json({ status: 'fail', message: err.message });
+    }
+};
+

@@ -49,6 +49,8 @@ router.get('/hsk/history', hskController.getExamHistory);
 router.get('/dictionary/home', dictionaryController.getDictionaryHome);
 router.get('/dictionary/search', dictionaryController.searchWords);
 router.get('/dictionary/:hanzi', dictionaryController.getWordDetail);
+router.post('/dictionary/toggle-reaction', dictionaryController.toggleReaction);
+router.get('/dictionary/favorites', dictionaryController.getFavoriteWords);
 
 // OCR Routes
 router.post('/ocr/scan', upload.single('image'), ocrController.scanImage);
