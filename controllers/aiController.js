@@ -72,6 +72,12 @@ exports.chatWithAI = async (req, res) => {
             };
         }
 
+        // 5. Thêm trường audioUrl (Sử dụng Google TTS như các API khác)
+        if (jsonResponse.hanzi) {
+            const encoded = encodeURIComponent(jsonResponse.hanzi);
+            jsonResponse.audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=zh-CN&client=tw-ob`;
+        }
+
         res.status(200).json({
             status: 'success',
             data: jsonResponse
