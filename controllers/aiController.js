@@ -66,10 +66,12 @@ exports.chatWithAI = async (req, res) => {
         });
 
     } catch (err) {
-        console.error("AI Chat Error:", err);
+        console.error("AI Chat Error Details:", err);
         res.status(500).json({ 
             status: 'error', 
-            message: 'Lỗi khi kết nối với AI. Vui lòng kiểm tra GEMINI_API_KEY.' 
+            message: 'Lỗi khi kết nối với AI.',
+            error_details: err.message,
+            suggestion: 'Hãy đảm bảo GEMINI_API_KEY chính xác và Render đã restart xong.'
         });
     }
 };
