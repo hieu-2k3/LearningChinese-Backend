@@ -145,7 +145,7 @@ exports.getWordDetail = async (req, res) => {
             data: {
                 word: {
                     ...word._doc,
-                    audioUrl: word.audioUrl || `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word.hanzi)}&tl=zh-CN&client=tw-ob`,
+                    audioUrl: word.audioUrl || `https://translate.google.com/translate_tts?ie=UTF-8&q=${word.hanzi}&tl=zh-CN&client=tw-ob`,
                     isLiked,
                     isDisliked
                 }

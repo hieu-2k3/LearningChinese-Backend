@@ -82,8 +82,9 @@ exports.chatWithAI = async (req, res) => {
         if (jsonResponse.hanzi) {
             // Loại bỏ Pinyin hoặc chú thích trong ngoặc nếu AI lỡ viết vào (ví dụ: "苹果 (Píngguǒ)")
             const cleanHanzi = jsonResponse.hanzi.replace(/\([^)]*\)/g, '').replace(/[a-zA-Z]/g, '').trim();
-            const encoded = encodeURIComponent(cleanHanzi);
-            jsonResponse.audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=zh-CN&client=tw-ob`;
+            // KHÔNG dùng encodeURIComponent ở đây vì client app sẽ tự encode toàn bộ URL, 
+            // nếu encode ở đây sẽ bị double encode (lỗi %25E5...)
+            jsonResponse.audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${cleanHanzi}&tl=zh-CN&client=tw-ob`;
         }
 
         res.status(200).json({

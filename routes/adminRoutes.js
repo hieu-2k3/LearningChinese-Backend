@@ -101,8 +101,7 @@ router.post('/lessons/:id/grammar/add', async (req, res) => {
         // Auto-generate TTS for each example
         for (let ex of examples) {
             if (ex.hanzi) {
-                const encoded = encodeURIComponent(ex.hanzi);
-                ex.audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=zh-CN&client=tw-ob`;
+                ex.audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${ex.hanzi}&tl=zh-CN&client=tw-ob`;
             }
         }
     } catch (e) {
@@ -156,8 +155,7 @@ router.post('/listenings/:id/dialogues/add', async (req, res) => {
     const newDialogue = { ...req.body };
     // Auto-attach Google TTS audio URL for this sentence (no API key needed)
     if (newDialogue.hanzi) {
-        const encoded = encodeURIComponent(newDialogue.hanzi);
-        newDialogue.audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=zh-CN&client=tw-ob`;
+        newDialogue.audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${newDialogue.hanzi}&tl=zh-CN&client=tw-ob`;
     }
     await Listening.findByIdAndUpdate(req.params.id, { $push: { dialogues: newDialogue } });
     res.redirect(`/admin/listenings/${req.params.id}/dialogues`);
