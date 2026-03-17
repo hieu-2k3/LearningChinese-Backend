@@ -36,32 +36,50 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('layout', 'layout');
 app.use(express.static(path.join(__dirname, 'public')));
 
-// DB Connection (Không được chặn tiến độ start)
+// DB Connection (Sẵn sàng cho Render - Không chặn khởi động)
 const dbUri = process.env.MONGODB_URI;
 if (!dbUri) {
-    console.error('❌ MONGODB_URI is missing!');
+    console.error('❌ MONGODB_URI is missing! App may fail to fetch data.');
 } else {
-    mongoose.connect(dbUri, { serverSelectionTimeoutMS: 5000 })
-        .then(() => console.log('✅ MongoDB Connected'))
-        .catch(err => console.error('❌ DB Fail:', err.message));
+    console.log('⏳ Connecting to MongoDB...');
+    mongoose.connect(dbUri, { 
+        serverSelectionTimeoutMS: 10000, 
+        connectTimeoutMS: 10000 
+    })
+    .then(() => console.log('✅ MongoDB Connected Successfully'))
+    .catch(err => {
+        console.error('❌ MongoDB Connection Error:', err.message);
+        console.log('⚠️ App is still running to maintain Port Binding for Render.');
+    });
 }
 
-// 2. ROUTES LOAD (Lazy load nếu cần, nhưng đây ta load bình thường)
+// 2. ROUTES LOAD
+console.log('⏳ Loading Routes...');
 try {
     const apiRoutes = require('./routes/apiRoutes');
     const adminRoutes = require('./routes/adminRoutes');
     app.use('/api/v1', apiRoutes);
     app.use('/admin', adminRoutes);
+    console.log('✅ Routes Loaded');
 } catch (loadErr) {
-    console.error('❌ Lỗi load Routes:', loadErr.message);
+    console.error('❌ Lỗi load Routes:', loadErr);
 }
 
 app.get('/', (req, res) => {
     res.send('<h1>Chinese Learning API v1.1</h1><p>Status: Running</p>');
 });
 
-// 3. START SERVER NGAY LẬP TỨC
-const PORT = process.env.PORT || 5001;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Server up at port ${PORT}`);
+// 3. START SERVER
+const PORT = process.env.PORT || 10000; // Render thường dùng cổng 10000
+const HOST = '0.0.0.0';
+
+const server = app.listen(PORT, HOST, () => {
+    console.log(`🚀 SERVER IS LIVE!`);
+    console.log(`🔗 Local Address: http://localhost:${PORT}`);
+    console.log(`🌐 Network Address: http://${HOST}:${PORT}`);
+    console.log(`🕒 Start time: ${new Date().toLocaleString()}`);
+});
+
+server.on('error', (err) => {
+    console.error('❌ Server startup error:', err);
 });
