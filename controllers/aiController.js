@@ -32,19 +32,21 @@ exports.chatWithAI = async (req, res) => {
             Bạn là Học giả "Lão sư Zhong", chuyên gia ngôn ngữ Trung Hoa.
             BẮT BUỘC PHẢN HỒI JSON gồm 4 trường: hanzi, pinyin, vietnamese, explanation.
             
-            QUY ĐỊNH BẮT BUỘC:
-            1. Trường "hanzi" KHÔNG BAO GIỜ ĐƯỢC ĐỂ TRỐNG. Nó phải chứa câu chào hoặc câu tóm tắt bằng CHỮ HÁN.
-            2. Trường "pinyin" và "vietnamese" là phiên âm và dịch nghĩa của trường "hanzi".
-            3. Nếu người dùng yêu cầu danh sách (ví dụ: 50 từ HSK 1), bạn phải:
-               - hanzi: "你好！这是你要 HSK 1 单词列表。" (Ví dụ)
-               - explanation: Liệt kê chi tiết danh sách "Chữ Hán (Pinyin) - Nghĩa" tại đây.
+            QUY ĐỊNH BẮT BUỘC VỀ TRƯỜNG "hanzi":
+            1. Chỉ chứa từ vựng hoặc câu tiếng Trung CỐT LÕI đang trao đổi. 
+            2. TUYỆT ĐỐI KHÔNG chứa lời chào, tên của bạn, phiên âm (Pinyin), hay dịch nghĩa trong trường này.
+            3. Trường này được dùng để phát âm mẫu, nên phải CỰC KỲ SẠCH SẼ (Chỉ chữ Hán và dấu câu).
             
-            VÍ DỤ ĐÚNG:
+            QUY ĐỊNH VỀ CÁC TRƯỜNG KHÁC:
+            1. "pinyin" và "vietnamese" là phiên âm và dịch nghĩa tương ứng của nội dung trong "hanzi".
+            2. "explanation": Chứa lời chào, giải thích chi tiết, ví dụ đặt câu, danh sách từ (nếu có) và các thông tin bổ sung.
+            
+            VÍ DỤ ĐÚNG (Khi người dùng hỏi "Táo tiếng Trung là gì?"):
             {
-              "hanzi": "你好！这是一些常用的汉字。",
-              "pinyin": "Nǐ hǎo! Zhè shì yīxiē chángyòng de hànzì.",
-              "vietnamese": "Chào bạn! Đây là một số chữ Hán thường dùng.",
-              "explanation": "1. 我 (wǒ) - Tôi\\n2. 你 (nǐ) - Bạn..."
+              "hanzi": "苹果",
+              "pinyin": "Píngguǒ",
+              "vietnamese": "Quả táo",
+              "explanation": "Chào bạn! Quả táo trong tiếng Trung là 苹果 (Píngguǒ). Đây là một loại trái cây rất tốt cho sức khỏe."
             }
             
             Trình độ người dùng: HSK ${user.hskLevel || 1}.
@@ -76,9 +78,11 @@ exports.chatWithAI = async (req, res) => {
             };
         }
 
-        // 5. Thêm trường audioUrl (Sử dụng Google TTS như các API khác)
+        // 5. Thêm trường audioUrl (Sử dụng Google TTS)
         if (jsonResponse.hanzi) {
-            const encoded = encodeURIComponent(jsonResponse.hanzi);
+            // Loại bỏ Pinyin hoặc chú thích trong ngoặc nếu AI lỡ viết vào (ví dụ: "苹果 (Píngguǒ)")
+            const cleanHanzi = jsonResponse.hanzi.replace(/\([^)]*\)/g, '').replace(/[a-zA-Z]/g, '').trim();
+            const encoded = encodeURIComponent(cleanHanzi);
             jsonResponse.audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=zh-CN&client=tw-ob`;
         }
 
