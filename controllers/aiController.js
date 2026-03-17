@@ -35,29 +35,31 @@ exports.chatWithAI = async (req, res) => {
             QUY TẮC PHÂN LOẠI PHẢN HỒI:
             1. Nếu người dùng hỏi về CẤU TRÚC NGỮ PHÁP (ví dụ: cấu trúc "把", "被", "了"...):
                - "hanzi": Chọn 1 câu ví dụ ĐIỂN HÌNH NHẤT cho cấu trúc đó.
-               - "explanation": Phải giải thích CỰC KỲ CHI TIẾT bao gồm: 
-                 + Công thức/Cấu trúc.
-                 + Cách dùng và lưu ý.
-                 + 2-3 câu ví dụ bổ sung (kèm Pinyin và Dịch).
+               - "explanation": Giải thích CHI TIẾT công thức, cách dùng và thêm 2-3 ví dụ khác.
             
-            2. Nếu người dùng hỏi TỪ VỰNG đơn thuần:
+            2. Nếu người dùng gửi một ĐOẠN VĂN DÀI hoặc yêu cầu DỊCH:
+               - "hanzi": Giữ nguyên văn bản tiếng Trung gốc (Nếu quá dài AI có thể tóm tắt 2-3 câu đầu quan trọng nhất).
+               - "vietnamese": BẮT BUỘC dịch ĐẦY ĐỦ toàn bộ nội dung người dùng gửi.
+               - "explanation": Phân tích các từ vựng mới, điểm ngữ pháp hay có trong đoạn văn đó.
+
+            3. Nếu người dùng hỏi TỪ VỰNG đơn thuần:
                - "hanzi": Chỉ chứa từ đó.
                - "explanation": Giải thích nghĩa, cách dùng và ví dụ đặt câu.
 
             VỀ TRƯỜNG "hanzi" (Dành cho phát âm mẫu):
-            - Chỉ chứa chữ Hán và dấu câu. 
+            - Chỉ chứa chữ Hán và dấu câu. Cố gắng giữ nội dung súc tích (dưới 150 chữ) để đảm bảo chất lượng âm thanh.
             - TUYỆT ĐỐI KHÔNG chứa: lời dẫn, tên bạn, Pinyin, tiếng Anh/Việt, chú thích trong ngoặc.
             
             VỀ TRƯỜNG "explanation" (Dành cho giảng dạy):
-            - Đây là nơi bạn thể hiện kiến thức chuyên sâu. Hãy giải thích tận tình như một giáo viên thực thụ.
-            - Sử dụng xuống dòng (\\n) để trình bày rõ ràng, đẹp mắt.
+            - Giải thích tận tình như một giáo viên thực thụ.
+            - Sử dụng xuống dòng (\\n) để trình bày rõ ràng.
             
-            VÍ DỤ KHI HỎI NGỮ PHÁP "Cấu trúc 把":
+            VÍ DỤ KHI NGƯỜI DÙNG GỬI ĐOẠN VĂN:
             {
-              "hanzi": "我把作业做完了。",
-              "pinyin": "Wǒ bǎ zuòyè zuò wán le.",
-              "vietnamese": "Tôi đã làm xong bài tập rồi.",
-              "explanation": "Chào bạn! Đây là cấu trúc câu chữ '把' (Câu bị động cách) rất quan trọng:\\n\\n1. Công thức: S + 把 + O + V + Thành phần khác.\\n2. Ý nghĩa: Nhấn mạnh tác động lên đối tượng làm thay đổi trạng thái của nó.\\n3. Ví dụ khác:\\n- 你把门关상 (Nǐ bǎ mén guān shàng) - Bạn đóng cửa vào đi.\\n- 请把书放在桌子上 (Qǐng bǎ shū fàng zài zhuōzi shàng) - Hãy để sách lên bàn."
+              "hanzi": "星期六和星期天是我最喜欢的时间...",
+              "pinyin": "Xīngqīliù hé xīngqītiān shì wǒ zuì xǐhuān de shíjiān...",
+              "vietnamese": "Thứ Bảy và Chủ Nhật là thời gian tôi yêu thích nhất... (Dịch đầy đủ ở đây)",
+              "explanation": "Đoạn văn này nói về sinh hoạt cuối tuần. Một số từ mới: 1. 周末 (Cuối tuần), 2. 打算 (Dự định)..."
             }
             
             Trình độ người dùng: HSK ${user.hskLevel || 1}.
@@ -92,7 +94,13 @@ exports.chatWithAI = async (req, res) => {
         // 5. Thêm trường audioUrl (Sử dụng Google TTS)
         if (jsonResponse.hanzi) {
             // Loại bỏ Pinyin hoặc chú thích trong ngoặc nếu AI lỡ viết vào (ví dụ: "苹果 (Píngguǒ)")
-            const cleanHanzi = jsonResponse.hanzi.replace(/\([^)]*\)/g, '').replace(/[a-zA-Z]/g, '').trim();
+            let cleanHanzi = jsonResponse.hanzi.replace(/\([^)]*\)/g, '').replace(/[a-zA-Z]/g, '').trim();
+            
+            // Giới hạn độ dài chuỗi để tránh lỗi URL quá dài cho Google TTS (Max ~200 chars)
+            if (cleanHanzi.length > 200) {
+                cleanHanzi = cleanHanzi.substring(0, 200);
+            }
+
             // KHÔNG dùng encodeURIComponent ở đây vì client app sẽ tự encode toàn bộ URL, 
             // nếu encode ở đây sẽ bị double encode (lỗi %25E5...)
             jsonResponse.audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${cleanHanzi}&tl=zh-CN&client=tw-ob`;
